@@ -110,31 +110,31 @@ static volatile uint8_t SlaveStatus=0x00; //status
 
 
 void delay_ms(unsigned int ms);
-uint16_t EEMEM Brennerlaufzeit;	// Akkumulierte Laufzeit
+uint16_t                EEMEM Brennerlaufzeit;	// Akkumulierte Laufzeit
 
 
-uint8_t EEMEM WDT_ErrCount0;	// Akkumulierte WDT Restart Events
-uint8_t EEMEM WDT_ErrCount1;	// WDT Restart Events nach wdt-reset
+uint8_t                 EEMEM WDT_ErrCount0;	// Akkumulierte WDT Restart Events
+uint8_t                 EEMEM WDT_ErrCount1;	// WDT Restart Events nach wdt-reset
 
 void delay_ms(unsigned int ms);
 
-volatile uint8_t	Slavestatus=0x00;				
+volatile uint8_t        Slavestatus=0x00;				
 
-volatile uint16_t	Servotakt=20;					//	Abstand der Impulspakete
-volatile uint16_t	Servopause=0x00;				//	Zaehler fuer Pause
-volatile uint16_t	Servoimpuls=0x00;				//	Zaehler fuer Impuls
-volatile uint8_t	Servoimpulsdauer=20;			//	Dauer des Servoimpulses Definitiv
-volatile uint8_t	ServoimpulsdauerPuffer=22;		//	Puffer fuer Servoimpulsdauer
-volatile uint8_t	ServoimpulsdauerSpeicher=0;		//	Speicher  fuer Servoimpulsdauer
-volatile uint8_t	Potwert=45;
-volatile uint8_t	TWI_Pause=1;
-volatile uint8_t	ServoimpulsOK=0;				//	Zaehler fuer richtige Impulsdauer
-uint8_t				ServoimpulsNullpunkt=23;
-uint8_t				ServoimpulsSchrittweite=10;
-uint8_t				Servoposition[]={23,33,42,50,60};
-volatile uint16_t	ADCImpuls=0;
+volatile uint16_t       Servotakt=20;					//	Abstand der Impulspakete
+volatile uint16_t       Servopause=0x00;				//	Zaehler fuer Pause
+volatile uint16_t       Servoimpuls=0x00;				//	Zaehler fuer Impuls
+volatile uint8_t        Servoimpulsdauer=20;			//	Dauer des Servoimpulses Definitiv
+volatile uint8_t        ServoimpulsdauerPuffer=22;		//	Puffer fuer Servoimpulsdauer
+volatile uint8_t        ServoimpulsdauerSpeicher=0;		//	Speicher  fuer Servoimpulsdauer
+volatile uint8_t        Potwert=45;
+volatile uint8_t        TWI_Pause=1;
+volatile uint8_t        ServoimpulsOK=0;				//	Zaehler fuer richtige Impulsdauer
+uint8_t                 ServoimpulsNullpunkt=23;
+uint8_t                 ServoimpulsSchrittweite=10;
+uint8_t                 Servoposition[]={23,33,42,50,60};
+volatile uint16_t       ADCImpuls=0;
 
-uint8_t EEMEM WDT_ErrCount;	// Akkumulierte WDT Restart Events
+uint8_t                 EEMEM WDT_ErrCount;	// Akkumulierte WDT Restart Events
 
 
 
@@ -589,6 +589,7 @@ void main (void)
 			
 			*/
 			// Lampe
+         
 			if ( Slavestatus  & (1<<LAMPEBIT)) // PIN 0
 				{
 					//delay_ms(1000);
@@ -622,7 +623,8 @@ void main (void)
 
 				}
 				
-				// Ofen
+         // Ofen
+         
 			if ( Slavestatus  & (1<<OFENBIT)) // PIN 1
 				{
 					//delay_ms(1000);
