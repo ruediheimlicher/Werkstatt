@@ -577,8 +577,8 @@ void main (void)
 			
 			Lampestatus=rxbuffer[0];
 			lcd_gotoxy(12,0);
-			lcd_puts("St:\0");
-			lcd_puthex(Lampestatus);
+			lcd_puts("L:\0");
+			//lcd_puthex(Lampestatus);
 			//delay_ms(20);
 			/*
 			// TWI_NEW_BIT wird in twislave-ISR gesetzt, wenn alle Daten aufgenommen sind
@@ -590,13 +590,13 @@ void main (void)
 			
 			*/
 			// Lampe
-         
+
 			if ( Lampestatus  & (1<<LAMPEBIT)) // PIN 0
 				{
 					//delay_ms(1000);
 					//Lampe ein
 					//lcd_gotoxy(19,1);
-					//lcd_puts("I\0");
+					lcd_putc('I');
 					SLAVEPORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
 					SLAVEPORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
 					SLAVEPORT |= (1<<LAMPEEIN);
@@ -611,7 +611,7 @@ void main (void)
 					//delay_ms(1000);
 					//Lampe aus
 					//lcd_gotoxy(19,1);
-					//lcd_puts("0\0");
+					lcd_putc('0');
 					
 					SLAVEPORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
 					SLAVEPORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
@@ -627,12 +627,15 @@ void main (void)
          // Ofen
          
          Radiatorstatus=rxbuffer[1];
+         lcd_gotoxy(16,0);
+			lcd_puts("R:\0");
+
          //if ( Slavestatus  & (1<<OFENBIT)) // PIN 1
 			if ( Radiatorstatus & 0x03) // // Ofen ein
 				{
 					//delay_ms(1000);
 					//Ofen ein
-					lcd_gotoxy(19,1);
+					
 					lcd_putc('I');
 					SLAVEPORT &= ~(1<<OFENAUS);//	OFENAUS sicher low
 					SLAVEPORT &= ~(1<<OFENEIN);//	OFENEIN sicher low
@@ -646,7 +649,7 @@ void main (void)
 				{
 					//delay_ms(1000);
 					//Ofen aus
-					lcd_gotoxy(19,1);
+					
 					lcd_putc('0');
 					
 					SLAVEPORT &= ~(1<<OFENEIN);//	OFENEIN sicher low
