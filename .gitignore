@@ -9,4 +9,5 @@ build/*
 *.xcodeproj
 *.hex
 *.o
+.dep/
 Source/*

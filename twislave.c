@@ -265,7 +265,7 @@ ISR (TWI_vect)
 				//			lcd_putint(buffer_adr);
 				//			delay_ms(2000);
 				//rxdata |= (1<<buffer_adr);	//	Bit markieren
-				rxdata=1;
+//				rxdata=1;
 				/*
 				 lcd_gotoxy(0,1);
 				 lcd_puts("rxbuf: \0");

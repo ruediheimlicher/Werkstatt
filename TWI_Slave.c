@@ -118,7 +118,9 @@ uint8_t                 EEMEM WDT_ErrCount1;	// WDT Restart Events nach wdt-rese
 
 void delay_ms(unsigned int ms);
 
-volatile uint8_t        Slavestatus=0x00;				
+volatile uint8_t        Lampestatus=0x00;
+static volatile uint8_t Radiatorstatus=0x00;
+
 
 volatile uint16_t       Servotakt=20;					//	Abstand der Impulspakete
 volatile uint16_t       Servopause=0x00;				//	Zaehler fuer Pause
@@ -456,8 +458,6 @@ void main (void)
 		/**	Ende Startroutinen	***********************/
 		
 		
-		
-		
 		/***** rx_buffer abfragen **************** */
 		//rxdata=0;
 		
@@ -465,8 +465,9 @@ void main (void)
 		//	Servo
 		//***************
 		
-		if ((SlaveStatus & (1<<TWI_OK_BIT)) &&(rxdata) && !(Slavestatus & (1<< MANUELL)))	//Daten von TWI liegen vor und Manuell ist OFF
+		if ((SlaveStatus & (1<<TWI_OK_BIT)) &&(rxdata) && !(SlaveStatus & (1<< MANUELL)))	//Daten von TWI liegen vor und Manuell ist OFF
 		{
+         
 				//PORTD |=(1<<PD3);
 
 			{
@@ -574,10 +575,10 @@ void main (void)
 			//RingD2(2);
 			//delay_ms(20);
 			
-			Slavestatus=rxbuffer[0];
+			Lampestatus=rxbuffer[0];
 			lcd_gotoxy(12,0);
 			lcd_puts("St:\0");
-			lcd_puthex(Slavestatus);
+			lcd_puthex(Lampestatus);
 			//delay_ms(20);
 			/*
 			// TWI_NEW_BIT wird in twislave-ISR gesetzt, wenn alle Daten aufgenommen sind
@@ -590,12 +591,12 @@ void main (void)
 			*/
 			// Lampe
          
-			if ( Slavestatus  & (1<<LAMPEBIT)) // PIN 0
+			if ( Lampestatus  & (1<<LAMPEBIT)) // PIN 0
 				{
 					//delay_ms(1000);
 					//Lampe ein
-					lcd_gotoxy(19,1);
-					lcd_puts("I\0");
+					//lcd_gotoxy(19,1);
+					//lcd_puts("I\0");
 					SLAVEPORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
 					SLAVEPORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
 					SLAVEPORT |= (1<<LAMPEEIN);
@@ -609,8 +610,8 @@ void main (void)
 				{
 					//delay_ms(1000);
 					//Lampe aus
-					lcd_gotoxy(19,1);
-					lcd_puts("0\0");
+					//lcd_gotoxy(19,1);
+					//lcd_puts("0\0");
 					
 					SLAVEPORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
 					SLAVEPORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
@@ -625,15 +626,17 @@ void main (void)
 				
          // Ofen
          
-			if ( Slavestatus  & (1<<OFENBIT)) // PIN 1
+         Radiatorstatus=rxbuffer[1];
+         //if ( Slavestatus  & (1<<OFENBIT)) // PIN 1
+			if ( Radiatorstatus & 0x03) // // Ofen ein
 				{
 					//delay_ms(1000);
 					//Ofen ein
 					lcd_gotoxy(19,1);
-					lcd_puts("I\0");
+					lcd_putc('I');
 					SLAVEPORT &= ~(1<<OFENAUS);//	OFENAUS sicher low
 					SLAVEPORT &= ~(1<<OFENEIN);//	OFENEIN sicher low
-					SLAVEPORT |= (1<<OFENEIN);
+					SLAVEPORT |= (1<<OFENEIN); // Impuls an ON
 					delay_ms(30);
 					SLAVEPORT &= ~(1<<OFENEIN);
 					//lcd_gotoxy(15,1);
@@ -644,11 +647,11 @@ void main (void)
 					//delay_ms(1000);
 					//Ofen aus
 					lcd_gotoxy(19,1);
-					lcd_puts("0\0");
+					lcd_putc('0');
 					
 					SLAVEPORT &= ~(1<<OFENEIN);//	OFENEIN sicher low
 					SLAVEPORT &= ~(1<<OFENAUS);//	OFENAUS sicher low
-					SLAVEPORT |= (1<<OFENAUS);
+					SLAVEPORT |= (1<<OFENAUS); // Impuls an OFF
 					delay_ms(30);
 					SLAVEPORT &= ~(1<<OFENAUS);
 				//	PORTD &= ~(1<<2);
@@ -666,10 +669,10 @@ void main (void)
 				uint16_t tempBuffer=0;
 				initADC(INNEN);
 				tempBuffer=readKanal(INNEN);
-				lcd_gotoxy(0,1);
-				lcd_puts("T\0");
+				//lcd_gotoxy(0,1);
+				//lcd_puts("T\0");
 				//lcd_putint(tempBuffer>>2);
-				lcd_put_tempbis99(tempBuffer>>2);
+				//lcd_put_tempbis99(tempBuffer>>2);
 				
 				txbuffer[INNEN]=(uint8_t)(tempBuffer>>2);// Vorlauf
 				//txbuffer[INNEN]=(uint8_t)(readKanal(INNEN)>>2);// Vorlauf
@@ -734,7 +737,7 @@ void main (void)
 			
 	*/		
 			
-			rxdata=0;
+			rxdata=0;               // TWI erledigt
 			//PORTD &= ~(1<<PD3);
 
 		}
@@ -898,7 +901,7 @@ void main (void)
 					case 0://
 					{ 
 						
-						Slavestatus |= (1<<MANUELL);	// MANUELL ON, 7
+						SlaveStatus |= (1<<MANUELL);	// MANUELL ON, 7
 						PORTD |= (1<<MANUELLPIN);
 						SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 zuruecksetzen: Servo ein
 						//Schalterposition=0;
@@ -907,7 +910,7 @@ void main (void)
 						
 					case 1:	//	Uhr ein
 					{ 
-						if (Slavestatus & (1<<MANUELL))
+						if (SlaveStatus & (1<<MANUELL))
 						{
 							SLAVEPORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
 							SLAVEPORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
@@ -933,7 +936,7 @@ void main (void)
 						
 					case 3: //	Lampe aus
 					{ 
-						if (Slavestatus & (1<<MANUELL))
+						if (SlaveStatus & (1<<MANUELL))
 						{
 							SLAVEPORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
 							SLAVEPORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
@@ -945,7 +948,7 @@ void main (void)
 						
 					case 4://
 					{ 
-						if ((Slavestatus & (1<<MANUELL)) &&  Schalterposition)
+						if ((SlaveStatus & (1<<MANUELL)) &&  Schalterposition)
 						{
 							Schalterposition--;
 							Servoimpulsdauer=Servoposition[Schalterposition];
@@ -958,7 +961,7 @@ void main (void)
 						//Slavestatus |= (1<<MANUELL);	// MANUELL ON
 						//PORTD |= (1<<PD3);
 						//SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 zuruecksetzen: Servo ein
-						if (Slavestatus & (1<<MANUELL))
+						if (SlaveStatus & (1<<MANUELL))
 						{
 						Schalterposition=0;
 						Servoimpulsdauer=Servoposition[Schalterposition];
@@ -968,7 +971,7 @@ void main (void)
 						
 					case 6://
 					{ 
-						if ((Slavestatus & (1<<MANUELL)) && (Schalterposition<4))
+						if ((SlaveStatus & (1<<MANUELL)) && (Schalterposition<4))
 						{
 							Schalterposition++;
 							Servoimpulsdauer=Servoposition[Schalterposition];
@@ -1017,7 +1020,7 @@ void main (void)
 					case 12:
 					{
 						
-						Slavestatus &= ~(1<<MANUELL); // MANUELL OFF
+						SlaveStatus &= ~(1<<MANUELL); // MANUELL OFF
 						SERVOPORT &= ~(1<<SERVOPIN1);//	SERVOPIN1 zuruecksetzen: Servo aus
 						PORTD &= ~(1<<MANUELLPIN);
 					}
