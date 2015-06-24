@@ -707,7 +707,7 @@ void main (void)
 				//
 				if (PINB & (1<< TIEFKUEHLALARMPIN)) // HI, Alles OK
 				{
-					txbuffer[STATUS] &= ~(1<< TIEFKUEHLALARMPIN); // TIEFKUEHLALARMBit zuruecksetzen
+					txbuffer[STATUS] &= ~(1<< TIEFKUEHLALARMPIN); // TIEFKUEHLALARMBit zuruecksetzen Bit 3
 				}
 				else 
 				{
