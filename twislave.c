@@ -107,7 +107,7 @@ extern volatile uint8_t TWI_Pause;
 	#error Buffer muss mindestens zwei Byte gro§ sein!
 #endif
 
-
+/*
 void BlinkD3(uint8_t anz)
 {
 	uint8_t k=0;
@@ -121,7 +121,7 @@ void BlinkD3(uint8_t anz)
 	}
 	PORTD &=~(1<<PD3);
 }
-
+*/
 
 void twidelay_ms(unsigned int ms)
 /* delay for a minimum of <ms> */

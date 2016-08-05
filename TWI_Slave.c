@@ -19,7 +19,7 @@
 
 #include "twislave.c"
 #include "lcd.c"
-
+#include "web_SPI.c"
 #include "adc.c"
 
 //***********************************
@@ -87,7 +87,7 @@
 #define TIEFKUEHLALARMPIN	3	// PIN 3 von PORT B als Eingang fuer TiefkuehlAlarn
 #define WASSERALARMPIN		4	// PIN 4 von PORT B als Eingang fuer Wasseralarm 
 
-#define MANUELL		7	// Bit 7 von Status 
+#define MANUELL		7	// Bit 7 von Status
 #define MANUELLPIN	4	//Pin 3 von PORT D fuer Anzeige Manuell
 
 
@@ -139,7 +139,76 @@ volatile uint16_t       ADCImpuls=0;
 uint8_t                 EEMEM WDT_ErrCount;	// Akkumulierte WDT Restart Events
 
 
+// SPI
 
+#define CS_HC_PASSIVE			SPI_CONTROL_PORT |= (1<< SPI_CONTROL_CS_HC)	// CS fuer HC ist HI
+#define CS_HC_ACTIVE				SPI_CONTROL_PORT &= ~(1<< SPI_CONTROL_CS_HC)	// CS fuer HC ist LO
+
+#define out_PULSE_DELAY			200								// Pause bei shift_byte
+
+
+
+
+void SPI_shift_out(void)
+{
+   //OSZILO;
+   uint8_t byteindex=0;
+   in_startdaten=0;
+   in_enddaten=0;
+   
+   in_lbdaten=0;
+   in_hbdaten=0;
+   
+   
+   CS_HC_ACTIVE; // CS LO fuer Slave: Beginn Uebertragung
+   //delay_ms(1);
+   _delay_us(20);
+   //OSZILO;
+   in_startdaten=SPI_shift_out_byte(out_startdaten);
+   //OSZIHI;
+   _delay_us(out_PULSE_DELAY);
+   in_lbdaten=SPI_shift_out_byte(out_lbdaten);
+   
+   _delay_us(out_PULSE_DELAY);
+   in_hbdaten=SPI_shift_out_byte(out_hbdaten);
+   
+   _delay_us(out_PULSE_DELAY);
+   for (byteindex=0;byteindex<out_BUFSIZE;byteindex++)
+   {
+      _delay_us(out_PULSE_DELAY);
+      inbuffer[byteindex]=SPI_shift_out_byte(outbuffer[byteindex]);
+      //
+   }
+   _delay_us(out_PULSE_DELAY);
+   
+   // Enddaten schicken: Zweiercomplement von in-Startdaten
+   uint8_t complement = ~in_startdaten;
+   in_enddaten=SPI_shift_out_byte(complement);
+   
+   _delay_us(100);
+   CS_HC_PASSIVE; // CS HI fuer Slave: Uebertragung abgeschlossen
+   
+   lcd_gotoxy(19,1);
+   
+   if (out_startdaten + in_enddaten==0xFF)
+   {
+      lcd_putc('+');
+      
+   }
+   else
+   {
+      lcd_putc('-');
+      errCounter++;
+      SPI_ErrCounter++;
+   }
+   
+   
+   //	lcd_gotoxy(17,3);
+   //	lcd_puthex(errCounter & 0x00FF);
+   //OSZIHI;
+}
+
+// end SPI
 
 uint8_t Tastenwahl(uint8_t Tastaturwert)
 {
@@ -468,7 +537,6 @@ void main (void)
 		if ((SlaveStatus & (1<<TWI_OK_BIT)) &&(rxdata) && !(SlaveStatus & (1<< MANUELL)))	//Daten von TWI liegen vor und Manuell ist OFF
 		{
          
-				//PORTD |=(1<<PD3);
 
 			{
 				if (rxbuffer[3] < 6)
@@ -602,7 +670,6 @@ void main (void)
 					SLAVEPORT |= (1<<LAMPEEIN);
 					delay_ms(30);
 					SLAVEPORT &= ~(1<<LAMPEEIN);
-		//			PORTD |= (1<<2);
 					//lcd_gotoxy(15,1);
 					//lcd_puts("ON \0");
 				}
@@ -618,7 +685,6 @@ void main (void)
 					SLAVEPORT |= (1<<LAMPEAUS);
 					delay_ms(30);
 					SLAVEPORT &= ~(1<<LAMPEAUS);
-			//		PORTD &= ~(1<<2);
 					//lcd_gotoxy(15,1);
 					//lcd_puts("OFF\0");
 
@@ -657,7 +723,6 @@ void main (void)
 					SLAVEPORT |= (1<<OFENAUS); // Impuls an OFF
 					delay_ms(30);
 					SLAVEPORT &= ~(1<<OFENAUS);
-				//	PORTD &= ~(1<<2);
 					//lcd_gotoxy(15,1);
 					//lcd_puts("OFF\0");
 
@@ -741,7 +806,6 @@ void main (void)
 	*/		
 			
 			rxdata=0;               // TWI erledigt
-			//PORTD &= ~(1<<PD3);
 
 		}
 		
