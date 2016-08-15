@@ -14,7 +14,7 @@
 #define OSZIPORT		PORTC
 #define OSZIPORTDDR	DDRC
 #define OSZIPORTPIN	PINC
-#define PULS			1
+#define PULS			5
 
 #define OSZILO OSZIPORT &= ~(1<<PULS)
 #define OSZIHI OSZIPORT |= (1<<PULS)
@@ -28,10 +28,14 @@
 // Modifizierte Belegung fuer Betrieb mit Webserver
 // ************************************************
 
-#define SPI_CONTROL_MOSI		PORTD0					// Eingang fuer Daten zum Slave
-#define SPI_CONTROL_MISO		PORTD1					// Ausgang fuer Daten vom Slave
+#define SPI_CONTROL_MOSI		PORTD0					// Ausgang fuer Daten zum Slave
+#define SPI_CONTROL_MISO		PORTD1					// Eingang fuer Daten vom Slave
 #define SPI_CONTROL_SCK			PORTD2					// Ausgang fuer CLK
 #define SPI_CONTROL_CS_HC		PORTD3					// Ausgang CS fuer Slave
+
+
+#define SPI_CLK_HI SPI_CONTROL_PORT |= (1<<SPI_CONTROL_SCK)
+#define SPI_CLK_LO SPI_CONTROL_PORT &= ~(1<<SPI_CONTROL_SCK)
 
 // ************************************************
 // defines fuer cronstatus
@@ -40,7 +44,7 @@
 #define CRON_WAIT    2
 
 #define CRON_SOLAR   4
-#define CRON_HOME   5
+#define CRON_HOME    5
 #define CRON_ALARM   6
 
 // ************************************************
@@ -88,23 +92,23 @@ static volatile uint16_t					resetcounter=0x00; // counter fuer Dauer reset-meld
 
 #define out_PULSE_DELAY			200								// Pause bei shift_byte
 
-#define out_BUFSIZE				16								// Anzahl Bytes
+#define SPI_BUFSIZE				8							// Anzahl Bytes
 
 // Ausgang:
-volatile uint8_t					outbuffer[out_BUFSIZE];	// buffer fuer die Ausgangsdaten
+volatile uint8_t					outbuffer[SPI_BUFSIZE];	// buffer fuer die Ausgangsdaten
 volatile uint8_t					out_startdaten;			// Startdaten fuer Ausgang
 volatile uint8_t					out_enddaten;				// Enddaten fuer Ausgang
 volatile uint8_t					out_hbdaten;
 volatile uint8_t					out_lbdaten;
 
 // Eingang
-volatile uint8_t					inbuffer[out_BUFSIZE];	// buffer fuer die Eingangsdaten
+volatile uint8_t					inbuffer[SPI_BUFSIZE];	// buffer fuer die Eingangsdaten
 volatile uint8_t					in_startdaten;				// Startdaten fuer Eingang
 volatile uint8_t					in_enddaten;				// Enddaten fuer Eingang
 volatile uint8_t					in_hbdaten;
 volatile uint8_t					in_lbdaten;
 
-static volatile uint8_t			spistatus=0;				// Status der Uebertragung
+ volatile uint8_t             spistatus=0;				// Status der Uebertragung
 static volatile uint8_t			ByteCounter=0;				// aktuelle Bytenummer
 
 
@@ -121,7 +125,8 @@ uint8_t SPI_shift_out_byte(uint8_t out_byte);
 void Init_SPI_Master(void) 
 { 
 	SPI_CONTROL_DDR |= ((1<<SPI_CONTROL_MOSI)|(1<<SPI_CONTROL_SCK)|(1<<SPI_CONTROL_CS_HC));	// Set MOSI , SCK , and SS output 
-	SPI_CONTROL_PORT |=(1<<SPI_CONTROL_SCK);
+	SPI_CONTROL_PORT |=(1<<SPI_CONTROL_SCK);  // SCK HI
+   SPI_CONTROL_PORT |=(1<<SPI_CONTROL_CS_HC); // CS HI
 
 	SPI_CONTROL_DDR &= ~(1<<SPI_CONTROL_MISO);																// MISO Eingang
 	SPI_CONTROL_PORT |=(1<<SPI_CONTROL_MISO);																	// HI
@@ -137,16 +142,40 @@ void Clear_SPI_Master(void)
 
    
 }
+// https://www.mikrocontroller.net/topic/13208 crazy horse
+void write_spi (unsigned char out_byte)
+{
+   
+   //msb first
+   unsigned char loop, mask;
+   for (loop=0,mask=0x80;loop<8;loop++, mask=mask>>1)
+   {
+      SPI_CONTROL_PORT &=~(1<<SPI_CONTROL_SCK);
+      if (out_byte & mask)
+      {
+         SPI_CONTROL_PORT |=_BV(SPI_CONTROL_MOSI); // MOSI HI
+      }
+      else
+      {
+        SPI_CONTROL_PORT &=~_BV(SPI_CONTROL_MOSI); // MOSI HI
+      }
+      SPI_CONTROL_PORT |=(1<<SPI_CONTROL_SCK);				// Takt HI
+   }
+   SPI_CONTROL_PORT |=(1<<SPI_CONTROL_SCK);				// Takt HI
+}
+
 
 uint8_t SPI_shift_out_byte(uint8_t out_byte)
 { 
 	uint8_t in_byte=0;
-
+   uint8_t delayfaktor=1;
+   
 	uint8_t i=0;
 	for(i=0; i<8; i++)
 	{
-		// Vorbereiten: Master legt Data auf MOSI
-		if (out_byte & 0x80)
+		// Vorbereiten: Master legt DataBit auf MOSI
+      
+		if (out_byte & 0x80) // aktuelles MSB, wird fortlaufend nach links geschoben
 		{
 			/* this bit is high */
 			SPI_CONTROL_PORT |=_BV(SPI_CONTROL_MOSI); // MOSI HI
@@ -156,12 +185,12 @@ uint8_t SPI_shift_out_byte(uint8_t out_byte)
 			/* this bit is low */
 			SPI_CONTROL_PORT &= ~_BV(SPI_CONTROL_MOSI); // MOSI LO						
 		}
-		_delay_us(2*out_PULSE_DELAY);
-		//_delay_us(20);
+		_delay_us(delayfaktor*out_PULSE_DELAY);
+      
 		// Vorgang beginnt: Takt LO, Slave legt Data auf MISO
 		
 		SPI_CONTROL_PORT &=~(1<<SPI_CONTROL_SCK);				
-		_delay_us(2*out_PULSE_DELAY);		
+		_delay_us(delayfaktor*out_PULSE_DELAY);
 		
 		// Slave lesen von MISO
 		if (SPI_CONTROL_PORTPIN & (1<<SPI_CONTROL_MISO))	// Bit vom Slave ist HI
@@ -172,14 +201,13 @@ uint8_t SPI_shift_out_byte(uint8_t out_byte)
 		{
 			in_byte &= ~(1<<(7-i));
 		}
-		//_delay_us(out_PULSE_DELAY);
-		_delay_us(20);
+		_delay_us(delayfaktor*out_PULSE_DELAY);
 		SPI_CONTROL_PORT |=(1<<SPI_CONTROL_SCK);				// Takt HI
 		
 		out_byte = out_byte << 1;									//	Byte um eine Stelle nach links schieben
-		//_delay_us(out_PULSE_DELAY);
-		//_delay_us(100);
+		_delay_us(delayfaktor*out_PULSE_DELAY);
 	} // for i
+   _delay_us(delayfaktor*out_PULSE_DELAY);
 	return in_byte;
 }
 
