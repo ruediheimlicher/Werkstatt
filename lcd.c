@@ -73,18 +73,6 @@ void lcddelay_ms(unsigned int ms)/* delay for a minimum of <ms> */
 
 
 
-void 
-lcd_backlight(int backlight_on)
-{
-        if (backlight_on)
-        {
-                /* LCD Backlight on */
-                LCD_PORT |= _BV(LCD_BACKLIGHT_PIN);                
-        } else {
-                /*  LCD Backlight off */
-                LCD_PORT &= ~_BV(LCD_BACKLIGHT_PIN);
-        }
-}
 
 /*
  * Initializes the LCD.  Should be called during the initialization of the 

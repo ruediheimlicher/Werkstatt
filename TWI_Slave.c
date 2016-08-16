@@ -244,6 +244,7 @@ return -1;
 
 void slaveinit(void)
 {
+   /*
  	DDRD |= (1<<LAMPEEIN);		//Pin 0 von PORT D als Ausgang fuer Schalter: ON		
 	DDRD |= (1<<LAMPEAUS);		//Pin 1 von PORT D als Ausgang fuer Schalter: OFF
 	DDRD |= (1<<OFENEIN);		//Pin 2 von PORT D als Ausgang fuer OFENEIN
@@ -268,12 +269,12 @@ void slaveinit(void)
    
 	DDRB &= ~(1<<WASSERALARMPIN);	//Pin 4 von PORT B als Eingang fŸr Wasseralarm
 	PORTB |= (1<<WASSERALARMPIN);	//Pull-up
-	
+	*/
 
 	//LCD
-	DDRB |= (1<<LCD_RSDS_PIN);		//Pin 5 von PORT B als Ausgang fuer LCD
- 	DDRB |= (1<<LCD_ENABLE_PIN);	//Pin 6 von PORT B als Ausgang fuer LCD
-	DDRB |= (1<<LCD_CLOCK_PIN);	//Pin 7 von PORT B als Ausgang fuer LCD
+	LCD_DDR |= (1<<LCD_RSDS_PIN);		//Pin 5 von PORT B als Ausgang fuer LCD
+ 	LCD_DDR |= (1<<LCD_ENABLE_PIN);	//Pin 6 von PORT B als Ausgang fuer LCD
+	LCD_DDR |= (1<<LCD_CLOCK_PIN);	//Pin 7 von PORT B als Ausgang fuer LCD
 
 	// TWI vorbereiten
 	TWI_DDR &= ~(1<<SDAPIN);//Bit 4 von PORT C als Eingang fŸr SDA
@@ -284,7 +285,7 @@ void slaveinit(void)
 
 	SlaveStatus=0;
 	SlaveStatus |= (1<<TWI_WAIT_BIT);
-	
+	/*
 	DDRC &= ~(1<<DDC0);	//Pin 0 von PORT C als Eingang fuer ADC 	
 	PORTC |= (1<<DDC0); //Pull-up
 	DDRC &= ~(1<<DDC1);	//Pin 1 von PORT C als Eingang fuer ADC 	
@@ -293,7 +294,7 @@ void slaveinit(void)
 	PORTC |= (1<<DDC3); //Pull-up
 	DDRC &= ~(1<<DDC3);	//Pin 3 von PORT C als Eingang fuer Tastatur 	
 	PORTC |= (1<<DDC3); //Pull-up
-
+*/
 
 	
 	
