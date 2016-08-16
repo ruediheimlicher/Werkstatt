@@ -153,11 +153,11 @@ void write_spi (unsigned char out_byte)
       SPI_CONTROL_PORT &=~(1<<SPI_CONTROL_SCK);
       if (out_byte & mask)
       {
-         SPI_CONTROL_PORT |=_BV(SPI_CONTROL_MOSI); // MOSI HI
+         SPI_CONTROL_PORT |=(1<<SPI_CONTROL_MOSI); // MOSI HI
       }
       else
       {
-        SPI_CONTROL_PORT &=~_BV(SPI_CONTROL_MOSI); // MOSI HI
+        SPI_CONTROL_PORT &=~(1<<SPI_CONTROL_MOSI); // MOSI HI
       }
       SPI_CONTROL_PORT |=(1<<SPI_CONTROL_SCK);				// Takt HI
    }
@@ -166,49 +166,49 @@ void write_spi (unsigned char out_byte)
 
 
 uint8_t SPI_shift_out_byte(uint8_t out_byte)
-{ 
-	uint8_t in_byte=0;
+{
+   uint8_t in_byte=0;
    uint8_t delayfaktor=1;
    
-	uint8_t i=0;
-	for(i=0; i<8; i++)
-	{
-		// Vorbereiten: Master legt DataBit auf MOSI
+   uint8_t i=0;
+   for(i=0; i<8; i++)
+   {
+      // Vorbereiten: Master legt DataBit auf MOSI
       
-		if (out_byte & 0x80) // aktuelles MSB, wird fortlaufend nach links geschoben
-		{
-			/* this bit is high */
-			SPI_CONTROL_PORT |=_BV(SPI_CONTROL_MOSI); // MOSI HI
-		}
-		else
-		{
-			/* this bit is low */
-			SPI_CONTROL_PORT &= ~_BV(SPI_CONTROL_MOSI); // MOSI LO						
-		}
-		_delay_us(delayfaktor*out_PULSE_DELAY);
+      if (out_byte & 0x80) // aktuelles MSB, wird fortlaufend nach links geschoben
+      {
+         /* this bit is high */
+         SPI_CONTROL_PORT |=(1<<SPI_CONTROL_MOSI); // MOSI HI
+      }
+      else
+      {
+         /* this bit is low */
+         SPI_CONTROL_PORT &= ~(1<<SPI_CONTROL_MOSI); // MOSI LO
+      }
+      _delay_us(delayfaktor*out_PULSE_DELAY);
       
-		// Vorgang beginnt: Takt LO, Slave legt Data auf MISO
-		
-		SPI_CONTROL_PORT &=~(1<<SPI_CONTROL_SCK);				
-		_delay_us(delayfaktor*out_PULSE_DELAY);
-		
-		// Slave lesen von MISO
-		if (SPI_CONTROL_PORTPIN & (1<<SPI_CONTROL_MISO))	// Bit vom Slave ist HI
-		{
-			in_byte |= (1<<(7-i));
-		}
-		else
-		{
-			in_byte &= ~(1<<(7-i));
-		}
-		_delay_us(delayfaktor*out_PULSE_DELAY);
-		SPI_CONTROL_PORT |=(1<<SPI_CONTROL_SCK);				// Takt HI
-		
-		out_byte = out_byte << 1;									//	Byte um eine Stelle nach links schieben
-		_delay_us(delayfaktor*out_PULSE_DELAY);
-	} // for i
+      // Vorgang beginnt: Takt LO, Slave legt Data auf MISO
+      
+      SPI_CONTROL_PORT &=~(1<<SPI_CONTROL_SCK);
+      _delay_us(delayfaktor*out_PULSE_DELAY);
+      
+      // Slave lesen von MISO
+      if (SPI_CONTROL_PORTPIN & (1<<SPI_CONTROL_MISO))	// Bit vom Slave ist HI
+      {
+         in_byte |= (1<<(7-i));
+      }
+      else
+      {
+         in_byte &= ~(1<<(7-i));
+      }
+      _delay_us(delayfaktor*out_PULSE_DELAY);
+      SPI_CONTROL_PORT |=(1<<SPI_CONTROL_SCK);				// Takt HI
+      
+      out_byte = out_byte << 1;									//	Byte um eine Stelle nach links schieben
+      _delay_us(delayfaktor*out_PULSE_DELAY);
+   } // for i
    _delay_us(delayfaktor*out_PULSE_DELAY);
-	return in_byte;
+   return in_byte;
 }
 
 
