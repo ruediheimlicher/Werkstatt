@@ -92,8 +92,8 @@
 
 
 #define LOOPLEDPORT		PORTD
-#define LOOPLED			4
-#define TWILED				5
+#define LOOPLEDDDR		DDRD
+#define LOOPLED			5
 
 #define STARTDELAYBIT	0
 #define HICOUNTBIT		1
@@ -448,7 +448,7 @@ void main (void)
 
 
 	uint8_t twierrcount=0;
-	LOOPLEDPORT |=(1<<LOOPLED);
+	LOOPLEDDDR |=(1<<LOOPLED);
 	
 	delay_ms(800);
 	uint8_t tempWDT_Count=eeprom_read_byte(&WDT_ErrCount);
@@ -534,11 +534,21 @@ void main (void)
 		//***************
 		//	Servo
 		//***************
+      
+      //***************
+      //	Test
+      
+      rxdata=1;
+      SlaveStatus |= (1<<TWI_OK_BIT);
+      
+      // end test
+      //***************
+
 		
 		if ((SlaveStatus & (1<<TWI_OK_BIT)) &&(rxdata) && !(SlaveStatus & (1<< MANUELL)))	//Daten von TWI liegen vor und Manuell ist OFF
 		{
          
-
+/*
 			{
 				if (rxbuffer[3] < 6)
 				{					
@@ -559,13 +569,13 @@ void main (void)
 							}
 						}
 						
-					/*
+ 
 					lcd_gotoxy(0,12);
 					lcd_puts("R:\0");
 					lcd_putint2(Servorichtung);
 					lcd_puts(" W:\0");
 					lcd_putint2(Servowert);
-					*/
+ 
 					
 					
 					Servowert=rxbuffer[3];
@@ -640,13 +650,13 @@ void main (void)
 				
 				
 			}
-			
+			*/
 			//RingD2(2);
 			//delay_ms(20);
 			
-			Lampestatus=rxbuffer[0];
-			lcd_gotoxy(12,0);
-			lcd_puts("L:\0");
+			//Lampestatus=rxbuffer[0];
+			//lcd_gotoxy(12,0);
+			//lcd_puts("L:\0");
 			//lcd_puthex(Lampestatus);
 			//delay_ms(20);
 			/*
@@ -659,7 +669,7 @@ void main (void)
 			
 			*/
 			// Lampe
-
+/*
 			if ( Lampestatus  & (1<<LAMPEBIT)) // PIN 0
 				{
 					//delay_ms(1000);
@@ -729,9 +739,9 @@ void main (void)
 
 				}
 			
-	//****************************
+	// ****************************
 	//	tx_buffer laden
-	//****************************	
+	// ****************************
 			
 				//lcd_clr_line(1);
 				// Temperatur lesen
@@ -748,27 +758,9 @@ void main (void)
 				//lcd_gotoxy(0,1);
 				//lcd_puts("V\0");
 
-	/*
-				initADC(TEMP1);
-				
-				uint16_t tempBuffer1=readKanal(TEMP1);
-				
-				lcd_gotoxy(8,1);
-				lcd_puts("R\0");
-				lcd_put_tempbis99(tempBuffer1>>2);
-
-				txbuffer[TEMP1]=(uint8_t)(tempBuffer1>>2);// Ruecklauf
-				
-				
-				initADC(TEMP2);
-				tempBuffer=readKanal(TEMP2);
-				txbuffer[TEMP2]=(uint8_t)(tempBuffer>>2); // Aussen
-				lcd_gotoxy(8,0);
-				lcd_puts("A\0");
-				lcd_put_tempbis99(tempBuffer>>2);
-				
-	*/
-				//
+	
+				//initADC(TEMP1);
+					//
 				//	Kuehltruhe abfragen
 				//
 				if (PINB & (1<< TIEFKUEHLALARMPIN)) // HI, Alles OK
@@ -794,18 +786,7 @@ void main (void)
 				
 				//lcd_gotoxy(17,1);
 				//lcd_puts("TKA\0");
-	/*			
-				if (PINB & (1<< EINGANG0PIN))
-				{
-				lcd_puts("OFF\0");
-				}
-				else
-				{
-				lcd_puts("ON \0");
-				}
-			
-	*/		
-			
+ */
 			rxdata=0;               // TWI erledigt
 
 		}
