@@ -348,7 +348,7 @@ void timer0 (void)
 ISR (TIMER0_OVF_vect)
 {
    timer0counter0++;
-   if (timer0counter0 >= 0x00FF)
+   if (timer0counter0 >= 0x008F)
    {
       lcd_gotoxy(16,3);
       lcd_putint(timer0counter1&0x1FF);
@@ -358,7 +358,7 @@ ISR (TIMER0_OVF_vect)
       //if (timer0counter1 >= 0xAFFF)
       {
          
-         timer0counter1;
+         //timer0counter1;
          SlaveStatus |= (1<<TWI_OK_BIT);
       }
    }
@@ -568,7 +568,7 @@ void main (void)
       //	Test
       
       rxdata=1;
-      SlaveStatus |= (1<<TWI_OK_BIT);
+      //SlaveStatus |= (1<<TWI_OK_BIT);
       
       // end test
       //***************
