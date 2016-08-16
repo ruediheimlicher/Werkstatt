@@ -312,6 +312,8 @@ void delay_ms(unsigned int ms)/* delay for a minimum of <ms> */
 		ms--;
 	}
 }
+volatile uint16_t       timer0counter0=0;					//
+volatile uint16_t       timer0counter1=0;
 
 void timer0 (void) 
 { 
@@ -347,10 +349,27 @@ void timer2 (uint8_t wert)
 	TCNT2 = 0x00;					//Zaehler zuruecksetzen
 	
 	OCR2 = wert;					//Setzen des Compare Registers auf Servoimpulsdauer
-} 
+}
+
 
 ISR (TIMER0_OVF_vect)
-{ 
+{
+   timer0counter0++;
+   if (timer0counter0 >= 0x0AFF)
+   {
+      lcd_gotoxy(16,3);
+      lcd_putint(timer0counter1&0x1FF);
+      
+      timer0counter0=0;
+      timer0counter1++;
+      //if (timer0counter1 >= 0xAFFF)
+      {
+         
+         timer0counter1;
+         SlaveStatus |= (1<<TWI_OK_BIT);
+      }
+   }
+
 	ADCImpuls++;
 	Servopause++;
 	//lcd_clr_line(1);
@@ -397,7 +416,7 @@ ISR(TIMER2_COMP_vect) // Schaltet Impuls an SERVOPIN0 aus
 }
 
 
-
+volatile uint8_t testwert=17;
 
 void main (void) 
 {
@@ -539,15 +558,16 @@ void main (void)
       //	Test
       
       rxdata=1;
-      SlaveStatus |= (1<<TWI_OK_BIT);
-      
+   //   SlaveStatus |= (1<<TWI_OK_BIT);
+  //    SlaveStatus &= ~(1<<TWI_WAIT_BIT);
+
       // end test
       //***************
 
 		
 		if ((SlaveStatus & (1<<TWI_OK_BIT)) &&(rxdata) && !(SlaveStatus & (1<< MANUELL)))	//Daten von TWI liegen vor und Manuell ist OFF
 		{
-         
+         SlaveStatus &= ~(1<<TWI_OK_BIT);
 /*
 			{
 				if (rxbuffer[3] < 6)
@@ -788,6 +808,48 @@ void main (void)
 				//lcd_puts("TKA\0");
  */
 			rxdata=0;               // TWI erledigt
+
+         /***** SPI: Daten von SPI_Slave_Strom abfragen **************** */
+         lcd_gotoxy(0,1);
+         lcd_puts("SPI");
+         out_startdaten = 0xA1;
+         out_hbdaten = 0xA2;
+         out_lbdaten = 0xA3;
+         out_enddaten = 0xA4;
+         
+         inbuffer[0]=0;
+         inbuffer[1]=0;
+         inbuffer[2]=0;
+         
+         testwert++;
+         
+         outbuffer[0] = testwert;
+         outbuffer[1] = testwert;
+         outbuffer[2] = testwert;
+         
+         lcd_gotoxy(0,2);
+         lcd_puts("oS \0");
+         lcd_putint(outbuffer[0]);
+         lcd_putc('*');
+         lcd_putint(outbuffer[1]);
+         lcd_putc('*');
+         lcd_putint(outbuffer[2]);
+         lcd_putc('s');
+         lcd_putint(out_startdaten);
+         
+         
+         //****************************
+         SPI_shift_out();
+         //****************************
+         
+         lcd_gotoxy(0,3);
+         lcd_puts("iS \0");
+         lcd_putint(inbuffer[0]);
+         lcd_putc('*');
+         lcd_putint(inbuffer[1]);
+         lcd_putc('*');
+         lcd_putint(inbuffer[2]);
+         
 
 		}
 		
