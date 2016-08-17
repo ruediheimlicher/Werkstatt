@@ -158,7 +158,7 @@ void SPI_shift_out(void)
 {
    
    uint8_t byteindex=0;
-   //   in_startdaten=0;
+   in_startdaten=0;
    in_enddaten=0;
    uint8_t delayfaktor=2;
    
@@ -350,7 +350,7 @@ ISR (TIMER0_OVF_vect)
    timer0counter0++;
    if (timer0counter0 >= 0x008F)
    {
-      lcd_gotoxy(16,3);
+      lcd_gotoxy(16,0);
       lcd_putint(timer0counter1&0x1FF);
       
       timer0counter0=0;
@@ -819,7 +819,7 @@ void main (void)
          out_startdaten = 0xA1;
          out_hbdaten = 0xA2;
          out_lbdaten = 0xA3;
-         out_enddaten = 0xA4;
+         //out_enddaten = 0xA4;
          
          inbuffer[0]=0;
          inbuffer[1]=0;
@@ -853,6 +853,8 @@ void main (void)
          lcd_putint(inbuffer[1]);
          lcd_putc('*');
          lcd_putint(inbuffer[2]);
+         lcd_putc('*');
+         lcd_putint(in_startdaten);
          
          
          txbuffer[STROMHH]= inbuffer[0];
