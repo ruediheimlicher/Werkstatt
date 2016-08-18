@@ -45,17 +45,18 @@
 #define OFENBIT            1
 
 
-#define SERVOPORT          PORTD			// Ausgang fuer Servo
-#define SERVOPIN0          7				// Impuls fŸr Servo
-#define SERVOPIN1          6				// Enable fuer Servo, Active H
+#define SERVOPORT          PORTB			// Ausgang fuer Servo
+#define SERVODDR          DDRB			// Ausgang fuer Servo
+#define SERVOPIN0          1				// Impuls fŸr Servo
+#define SERVOPIN1          2				// Enable fuer Servo, Active H
 
 
 //Bit- Definitionen fuer Slave
-#define LAMPEEIN 0
-#define LAMPEAUS 1
+#define LAMPEEIN 4
+#define LAMPEAUS 5
 
-#define OFENEIN 2
-#define OFENAUS 3
+#define OFENEIN 6
+#define OFENAUS 7
 
 
 #define TASTE1			38
@@ -95,8 +96,8 @@
 #define MANUELLPIN	6	//Pin 4 von PORT D fuer Anzeige Manuell
 
 
-#define LOOPLEDPORT		PORTD
-#define LOOPLED			5
+#define LOOPLEDPORT		PORTB
+#define LOOPLED			0
 
 #define STARTDELAYBIT	0
 #define HICOUNTBIT		1
@@ -348,10 +349,10 @@ void timer0 (void)
 ISR (TIMER0_OVF_vect)
 {
    timer0counter0++;
-   if (timer0counter0 >= 0x008F)
+   if (timer0counter0 >= 0x00FF)
    {
       lcd_gotoxy(16,0);
-      lcd_putint(timer0counter1&0x1FF);
+      lcd_putint(timer0counter1&0xFF);
       
       timer0counter0=0;
       timer0counter1++;
