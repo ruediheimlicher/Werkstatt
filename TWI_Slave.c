@@ -41,12 +41,13 @@
 #define TWI_OK_BIT         4
 #define WDTBIT             7
 #define SLAVEPORT          PORTD		// Ausgang fuer Slave
+#define SLAVEDDR           DDRD		// DDR fuer Slave
 #define LAMPEBIT           0
 #define OFENBIT            1
 
 
 #define SERVOPORT          PORTB			// Ausgang fuer Servo
-#define SERVODDR          DDRB			// Ausgang fuer Servo
+#define SERVODDR           DDRB			// Ausgang fuer Servo
 #define SERVOPIN0          1				// Impuls für Servo
 #define SERVOPIN1          2				// Enable fuer Servo, Active H
 
@@ -72,6 +73,7 @@
 #define TASTE0			235
 #define TASTER			245
 #define TASTATURPORT PORTC
+#define TASTATURDDR  DDRC
 
 #define TASTATURPIN	3
 #define POTPIN			0

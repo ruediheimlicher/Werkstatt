@@ -14,7 +14,7 @@
 #define OSZIPORT		PORTC
 #define OSZIPORTDDR	DDRC
 #define OSZIPORTPIN	PINC
-#define PULS			5
+#define PULS			0
 
 #define OSZILO OSZIPORT &= ~(1<<PULS)
 #define OSZIHI OSZIPORT |= (1<<PULS)
