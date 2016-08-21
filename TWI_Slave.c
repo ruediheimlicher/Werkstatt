@@ -40,8 +40,8 @@
 //#define TWI_WAIT_BIT		3
 #define TWI_OK_BIT         4
 #define WDTBIT             7
-#define SLAVEPORT          PORTD		// Ausgang fuer Slave
-#define SLAVEDDR           DDRD		// DDR fuer Slave
+#define SLAVE_OUT_PORT          PORTD		// Ausgang fuer Slave
+#define SLAVE_OUT_DDR           DDRD		// DDR fuer Slave
 #define LAMPEBIT           0
 #define OFENBIT            1
 
@@ -89,15 +89,17 @@
 #define STROMH       5
 #define STROML       6
 
+#define SLAVE_IN_PORT          PORTB		// Eingang fuer Slave
+#define SLAVE_IN_DDR           DDRB		// DDR fuer Slave
+#define SLAVE_IN_PIN          PINB  // PIN fuer Slave
 
 #define EINGANG0PIN			2	// PIN 2 von PORT B als Eingang
 #define TIEFKUEHLALARMPIN	3	// PIN 3 von PORT B als Eingang fuer TiefkuehlAlarn
 #define WASSERALARMPIN		4	// PIN 4 von PORT B als Eingang fuer Wasseralarm
 
 #define MANUELL		7	// Bit 7 von Status
-#define MANUELLPIN	6	//Pin 4 von PORT D fuer Anzeige Manuell
 
-
+#define LOOPLEDDDR		DDRB
 #define LOOPLEDPORT		PORTB
 #define LOOPLED			0
 
@@ -270,31 +272,30 @@ uint8_t Tastenwahl(uint8_t Tastaturwert)
 void slaveinit(void)
 {
    /*
-    DDRD |= (1<<LAMPEEIN);		//Pin 0 von PORT D als Ausgang fuer Schalter: ON
-    DDRD |= (1<<LAMPEAUS);		//Pin 1 von PORT D als Ausgang fuer Schalter: OFF
-    DDRD |= (1<<OFENEIN);		//Pin 2 von PORT D als Ausgang fuer OFENEIN
-    DDRD |= (1<<OFENAUS);		//Pin 3 von PORT D als Ausgang fuer OFENAUS
-    DDRD |= (1<<DDD4);		//Pin 4 von PORT D als Ausgang fuer LED
-    DDRD |= (1<<DDD5);		//Pin 5 von PORT D als Ausgang fuer Manuell
-    DDRD |= (1<<SERVOPIN1);	//Pin 6 von PORT D als Ausgang fuer Servo-Enable
-    DDRD |= (1<<SERVOPIN0);	//Pin 7 von PORT D als Ausgang fuer Servo-Impuls
+    SLAVE_OUT_DDR |= (1<<LAMPEEIN);		//Pin 0 von PORT D als Ausgang fuer Schalter: ON
+    SLAVE_OUT_DDR |= (1<<LAMPEAUS);		//Pin 1 von PORT D als Ausgang fuer Schalter: OFF
+    SLAVE_OUT_DDR |= (1<<OFENEIN);		//Pin 2 von PORT D als Ausgang fuer OFENEIN
+    SLAVE_OUT_DDR |= (1<<OFENAUS);		//Pin 3 von PORT D als Ausgang fuer OFENAUS
+    SERVODDR |= (1<<SERVOPIN1);	//Pin 6 von PORT D als Ausgang fuer Servo-Enable
+    SERVODDR |= (1<<SERVOPIN0);	//Pin 7 von PORT D als Ausgang fuer Servo-Impuls
     */
    
-   //DDRB &= ~(1<<PB0);	//Bit 0 von PORT B als Eingang fŸr Taste 1
-   //PORTB |= (1<<PB0);	//Pull-up
+   //SLAVE_IN_DDR &= ~(1<<PB0);	//Bit 0 von PORT B als Eingang fŸr Taste 1
+   //SLAVE_IN_PORT |= (1<<PB0);	//Pull-up
    
-   //DDRB &= ~(1<<PB1);	//Bit 1 von PORT B als Eingang fŸr Taste 2
-   //PORTB |= (1<<PB1);	//Pull-up
+   //SLAVE_IN_DDR &= ~(1<<PB1);	//Bit 1 von PORT B als Eingang fŸr Taste 2
+   //SLAVE_IN_PORT |= (1<<PB1);	//Pull-up
    
    //TIEFKUEHLALARMPIN
-   //DDRB &= ~(1<<TIEFKUEHLALARMPIN);	//Pin 3 von PORT B als Eingang fŸr Tiefkuehlalarm
-   //PORTB |= (1<<TIEFKUEHLALARMPIN);	//Pull-up
+   SLAVE_IN_DDR &= ~(1<<TIEFKUEHLALARMPIN);	//Pin 3 von PORT B als Eingang fŸr Tiefkuehlalarm
+   SLAVE_IN_PORT |= (1<<TIEFKUEHLALARMPIN);	//Pull-up
    
    //WASSERALARMPIN
    
-   //DDRB &= ~(1<<WASSERALARMPIN);	//Pin 4 von PORT B als Eingang fŸr Wasseralarm
-   //PORTB |= (1<<WASSERALARMPIN);	//Pull-up
+   SLAVE_IN_DDR &= ~(1<<WASSERALARMPIN);	//Pin 4 von PORT B als Eingang fŸr Wasseralarm
+   SLAVE_IN_PORT |= (1<<WASSERALARMPIN);	//Pull-up
    
+   LOOPLEDDDR |= (1<<LOOPLED);
    
    //LCD
    LCD_DDR |= (1<<LCD_RSDS_PIN);		//Pin 5 von PORT B als Ausgang fuer LCD
@@ -310,16 +311,6 @@ void slaveinit(void)
    
    SlaveStatus=0;
    SlaveStatus |= (1<<TWI_WAIT_BIT);
-   /*
-    DDRC &= ~(1<<DDC0);	//Pin 0 von PORT C als Eingang fuer ADC
-    PORTC |= (1<<DDC0); //Pull-up
-    DDRC &= ~(1<<DDC1);	//Pin 1 von PORT C als Eingang fuer ADC
-    PORTC |= (1<<DDC1); //Pull-up
-    DDRC &= ~(1<<DDC2);	//Pin 2 von PORT C als Eingang fuer ADC
-    PORTC |= (1<<DDC3); //Pull-up
-    DDRC &= ~(1<<DDC3);	//Pin 3 von PORT C als Eingang fuer Tastatur
-    PORTC |= (1<<DDC3); //Pull-up
-    */
    
    
    
@@ -461,17 +452,17 @@ void main (void)
    lcd_puts(RAUM);
    
    /*
-    SLAVEPORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
-    SLAVEPORT &= ~(1<<LAMPEAUS);//	LAMPEAus sicher low
-    SLAVEPORT |= (1<<LAMPEAUS);
+    SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
+    SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);//	LAMPEAus sicher low
+    SLAVE_OUT_PORT |= (1<<LAMPEAUS);
     delay_ms(30);
-    SLAVEPORT &= ~(1<<LAMPEAUS);
+    SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);
     
-    SLAVEPORT &= ~(1<<OFENEIN);//	OFENEIN sicher low
-    SLAVEPORT &= ~(1<<OFENAUS);//	OFENAUS sicher low
-    SLAVEPORT |= (1<<OFENAUS);
+    SLAVE_OUT_PORT &= ~(1<<OFENEIN);//	OFENEIN sicher low
+    SLAVE_OUT_PORT &= ~(1<<OFENAUS);//	OFENAUS sicher low
+    SLAVE_OUT_PORT |= (1<<OFENAUS);
     delay_ms(30);
-    SLAVEPORT &= ~(1<<OFENAUS);
+    SLAVE_OUT_PORT &= ~(1<<OFENAUS);
     */
    uint8_t Tastenwert=0;
    uint8_t TastaturCount=0;
@@ -686,18 +677,18 @@ void main (void)
           SlaveStatus &= ~(1<<TWI_NEW_BIT); // Die Aktionen sollen nur einmal ausgeloest werden
           */
          // Lampe
-         /*
+         
           if ( Lampestatus  & (1<<LAMPEBIT)) // PIN 0
           {
           //delay_ms(1000);
           //Lampe ein
           //lcd_gotoxy(19,1);
           //lcd_putc('I');
-          SLAVEPORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
-          SLAVEPORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
-          SLAVEPORT |= (1<<LAMPEEIN);
+          SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
+          SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
+          SLAVE_OUT_PORT |= (1<<LAMPEEIN);
           delay_ms(30);
-          SLAVEPORT &= ~(1<<LAMPEEIN);
+          SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);
           //lcd_gotoxy(15,1);
           //lcd_puts("ON \0");
           }
@@ -708,11 +699,11 @@ void main (void)
           //lcd_gotoxy(19,1);
           //lcd_putc('0');
           
-          SLAVEPORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
-          SLAVEPORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
-          SLAVEPORT |= (1<<LAMPEAUS);
+          SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
+          SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
+          SLAVE_OUT_PORT |= (1<<LAMPEAUS);
           delay_ms(30);
-          SLAVEPORT &= ~(1<<LAMPEAUS);
+          SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);
           //lcd_gotoxy(15,1);
           //lcd_puts("OFF\0");
           
@@ -731,11 +722,11 @@ void main (void)
           //Ofen ein
           
           //lcd_putc('I');
-          SLAVEPORT &= ~(1<<OFENAUS);//	OFENAUS sicher low
-          SLAVEPORT &= ~(1<<OFENEIN);//	OFENEIN sicher low
-          SLAVEPORT |= (1<<OFENEIN); // Impuls an ON
+          SLAVE_OUT_PORT &= ~(1<<OFENAUS);//	OFENAUS sicher low
+          SLAVE_OUT_PORT &= ~(1<<OFENEIN);//	OFENEIN sicher low
+          SLAVE_OUT_PORT |= (1<<OFENEIN); // Impuls an ON
           delay_ms(30);
-          SLAVEPORT &= ~(1<<OFENEIN);
+          SLAVE_OUT_PORT &= ~(1<<OFENEIN);
           //lcd_gotoxy(15,1);
           //lcd_puts("ON \0");
           }
@@ -744,18 +735,18 @@ void main (void)
           //delay_ms(1000);
           //Ofen aus
           //lcd_putc('0');
-          SLAVEPORT &= ~(1<<OFENEIN);//	OFENEIN sicher low
-          SLAVEPORT &= ~(1<<OFENAUS);//	OFENAUS sicher low
-          SLAVEPORT |= (1<<OFENAUS); // Impuls an OFF
+          SLAVE_OUT_PORT &= ~(1<<OFENEIN);//	OFENEIN sicher low
+          SLAVE_OUT_PORT &= ~(1<<OFENAUS);//	OFENAUS sicher low
+          SLAVE_OUT_PORT |= (1<<OFENAUS); // Impuls an OFF
           delay_ms(30);
-          SLAVEPORT &= ~(1<<OFENAUS);
+          SLAVE_OUT_PORT &= ~(1<<OFENAUS);
           //lcd_gotoxy(15,1);
           //lcd_puts("OFF\0");
           }
           
-          //****************************
+          // ****************************
           //	tx_buffer laden
-          //****************************
+          // ****************************
           
           //lcd_clr_line(1);
           // Temperatur lesen
@@ -767,7 +758,7 @@ void main (void)
           //lcd_putint(tempBuffer>>2);
           //lcd_put_tempbis99(tempBuffer>>2);
           
-          //        txbuffer[INNEN]=(uint8_t)(tempBuffer>>2);// Vorlauf
+            txbuffer[INNEN]=(uint8_t)(tempBuffer>>2);// Vorlauf
           
           
           //txbuffer[INNEN]=(uint8_t)(readKanal(INNEN)>>2);// Vorlauf
@@ -777,30 +768,41 @@ void main (void)
           //
           //	Kuehltruhe abfragen
           //
-          if (PINB & (1<< TIEFKUEHLALARMPIN)) // HI, Alles OK
+          if (SLAVE_IN_PIN & (1<< TIEFKUEHLALARMPIN)) // HI, Alles OK
           {
           txbuffer[STATUS] &= ~(1<< TIEFKUEHLALARMPIN); // TIEFKUEHLALARMBit zuruecksetzen Bit 3
+             lcd_gotoxy(19,2);
+             lcd_putc('x');
+
           }
           else
           {
           txbuffer[STATUS] |= (1<< TIEFKUEHLALARMPIN);	// TIEFKUEHLALARMBit setzen
+             lcd_gotoxy(19,2);
+             lcd_putc('t');
           }
-          
+         
           //
           //	Wasseralarm abfragen
           //
-          if (PINB & (1<< WASSERALARMPIN)) // HI, Alles OK
+          if (SLAVE_IN_PIN & (1<< WASSERALARMPIN)) // HI, Alles OK
           {
           txbuffer[STATUS] &= ~(1<< WASSERALARMPIN); // WASSERALARMBit zuruecksetzen
+             lcd_gotoxy(19,2);
+             lcd_putc(' ');
+
           }
           else
           {
           txbuffer[STATUS] |= (1<< WASSERALARMPIN);	// WASSERALARMBit setzen
+             lcd_gotoxy(19,2);
+             lcd_putc('w');
+
           }
           
           //lcd_gotoxy(17,1);
           //lcd_puts("TKA\0");
-          */
+         
          
          /*
           if (PINB & (1<< EINGANG0PIN))
@@ -871,6 +873,7 @@ void main (void)
          //****************************
       }
       
+     
       if (!(PINB & (1<<PB0))) // Taste 0
       {
          //lcd_gotoxy(12,1);
@@ -895,78 +898,13 @@ void main (void)
             
             if (Tastencount >= Tastenprellen)
             {
-               /* initialize the LCD */
-               lcd_initialize(LCD_FUNCTION_8x2, LCD_CMD_ENTRY_INC, LCD_CMD_ON);
-               lcd_puts("WERKSTATT\0");
-               
-               if (Servowert<4)
-               {
-                  Servowert++;
-                  Servoimpulsdauer=Servoposition[Servowert];
-                  
-               }
-               /*
-                if (Servoimpulsdauer<61)
-                {
-                Servoimpulsdauer++;
-                SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 setzen: Servo ein
-                lcd_gotoxy(0,1);
-                //lcd_puts("P0 down  \0");
-                lcd_putint2(Servoimpulsdauer);
-                }
-                */
                Tastencount=0;
                TastenStatus &= ~(1<<PB0);
             }
          }//else
          
       }
-      
-      
-      if (!(PINB & (1<<PB1))) // Taste 1
-      {
-         //lcd_gotoxy(12,1);
-         //lcd_puts("P1 Down\0");
-         
-         if (! (TastenStatus & (1<<PB1))) //Taste 1 war nicht nicht gedrueckt
-         {
-            TastenStatus |= (1<<PB1);
-            Tastencount=0;
-            //lcd_gotoxy(3,1);
-            //lcd_puts("P1 \0");
-            //lcd_putint(Servoimpulsdauer);
-            //delay_ms(800);
-            
-         }
-         else
-         {
-            //lcd_gotoxy(3,1);
-            //lcd_puts("       \0");
-            
-            Tastencount ++;
-            if (Tastencount >= Tastenprellen)
-            {
-               if (Servowert > 0)
-               {
-                  Servowert--;
-                  Servoimpulsdauer=Servoposition[Servowert];
-               }
-               /*
-                if (Servoimpulsdauer>19)
-                {
-                Servoimpulsdauer--;
-                SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 setzen: Servo ein
-                
-                lcd_gotoxy(0,1);
-                lcd_putint2(Servoimpulsdauer);
-                }
-                */
-               Tastencount=0;
-               TastenStatus &= ~(1<<PB1);
-            }
-         }//	else
-         
-      }
+
       
       /* ******************** */
       //		initADC(TASTATURPIN);
@@ -1021,8 +959,6 @@ void main (void)
                case 0://
                {
                   
-                  SlaveStatus |= (1<<MANUELL);	// MANUELL ON, 7
-                  PORTD |= (1<<MANUELLPIN);
                   SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 zuruecksetzen: Servo ein
                   //Schalterposition=0;
                   //Servoimpulsdauer=Servoposition[Schalterposition];
@@ -1032,11 +968,11 @@ void main (void)
                {
                   if (SlaveStatus & (1<<MANUELL))
                   {
-                     SLAVEPORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
-                     SLAVEPORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
-                     SLAVEPORT |= (1<<LAMPEEIN);
+                     SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
+                     SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
+                     SLAVE_OUT_PORT |= (1<<LAMPEEIN);
                      delay_ms(20);
-                     SLAVEPORT &= ~(1<<LAMPEEIN);
+                     SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);
                   }
                }break;
                   
@@ -1058,11 +994,11 @@ void main (void)
                {
                   if (SlaveStatus & (1<<MANUELL))
                   {
-                     SLAVEPORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
-                     SLAVEPORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
-                     SLAVEPORT |= (1<<LAMPEAUS);
+                     SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
+                     SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
+                     SLAVE_OUT_PORT |= (1<<LAMPEAUS);
                      delay_ms(20);
-                     SLAVEPORT &= ~(1<<LAMPEAUS);
+                     SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);
                   }
                }break;
                   
@@ -1142,7 +1078,6 @@ void main (void)
                   
                   SlaveStatus &= ~(1<<MANUELL); // MANUELL OFF
                   SERVOPORT &= ~(1<<SERVOPIN1);//	SERVOPIN1 zuruecksetzen: Servo aus
-                  PORTD &= ~(1<<MANUELLPIN);
                }
                   
             }//switch Tastatur
