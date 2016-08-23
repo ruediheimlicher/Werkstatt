@@ -22,12 +22,16 @@
 #include "lcd.c"
 #include "web_SPI.c"
 #include "adc.c"
+#include "ds18x20.c"
 
 //***********************************
 //Werkstatt							*
 #define SLAVE_ADRESSE 0x64 //		*
 //									*
 //***********************************
+
+#define TEST 1
+
 #define RAUM		"WERKSTATT SPI"
 
 #define TWI_PORT		PORTC
@@ -48,7 +52,7 @@
 
 #define SERVOPORT          PORTB			// Ausgang fuer Servo
 #define SERVODDR           DDRB			// Ausgang fuer Servo
-#define SERVOPIN0          1				// Impuls für Servo
+#define SERVOPIN0          1				// OC1A: Impuls für Servo
 #define SERVOPIN1          2				// Enable fuer Servo, Active H
 
 
@@ -118,7 +122,7 @@ static volatile uint8_t SlaveStatus=0x00; //status
 
 
 void delay_ms(unsigned int ms);
-uint16_t                EEMEM Brennerlaufzeit;	// Akkumulierte Laufzeit
+//uint16_t                EEMEM Brennerlaufzeit;	// Akkumulierte Laufzeit
 
 
 uint8_t                 EEMEM WDT_ErrCount0;	// Akkumulierte WDT Restart Events
@@ -129,16 +133,16 @@ volatile uint8_t        Lampestatus=0x00;
 static volatile uint8_t Radiatorstatus=0x00;
 
 
-volatile uint16_t       Servotakt=20;					//	Abstand der Impulspakete
-volatile uint16_t       Servopause=0x00;				//	Zaehler fuer Pause
-volatile uint16_t       Servoimpuls=0x00;				//	Zaehler fuer Impuls
-volatile uint8_t        Servoimpulsdauer=20;			//	Dauer des Servoimpulses Definitiv
-volatile uint8_t        ServoimpulsdauerPuffer=22;		//	Puffer fuer Servoimpulsdauer
-volatile uint8_t        ServoimpulsdauerSpeicher=0;		//	Speicher  fuer Servoimpulsdauer
-volatile uint8_t        Potwert=45;
+//volatile uint16_t       Servotakt=20;					//	Abstand der Impulspakete
+//volatile uint16_t       Servopause=0x00;				//	Zaehler fuer Pause
+//volatile uint16_t       Servoimpuls=0x00;				//	Zaehler fuer Impuls
+//volatile uint8_t        Servoimpulsdauer=20;			//	Dauer des Servoimpulses Definitiv
+//volatile uint8_t        ServoimpulsdauerPuffer=22;		//	Puffer fuer Servoimpulsdauer
+//volatile uint8_t        ServoimpulsdauerSpeicher=0;		//	Speicher  fuer Servoimpulsdauer
+//volatile uint8_t        Potwert=45;
 volatile uint8_t        TWI_Pause=1;
-volatile uint8_t        ServoimpulsOK=0;				//	Zaehler fuer richtige Impulsdauer
-uint8_t                 ServoimpulsNullpunkt=23;
+//volatile uint8_t        ServoimpulsOK=0;				//	Zaehler fuer richtige Impulsdauer
+//uint8_t                 ServoimpulsNullpunkt=23;
 uint8_t                 ServoimpulsSchrittweite=10;
 uint8_t                 Servoposition[]={23,33,42,50,60};
 volatile uint16_t       ADCImpuls=0;
@@ -157,6 +161,13 @@ volatile uint16_t EventCounter=0;
 
 volatile uint16_t       timer0counter0=0;					//
 volatile uint16_t       timer0counter1=0;
+
+//#define MAXSENSORS 2
+static uint8_t gSensorIDs[MAXSENSORS][OW_ROMCODE_SIZE];
+static int16_t gTempdata[MAXSENSORS]; // temperature times 10
+static uint8_t gTemp_measurementstatus=0; // 0=ok,1=error
+static int8_t gNsensors=0;
+
 
 
 void SPI_shift_out(void)
@@ -311,9 +322,6 @@ void slaveinit(void)
    
    SlaveStatus=0;
    SlaveStatus |= (1<<TWI_WAIT_BIT);
-   
-   
-   
 }
 
 
@@ -358,7 +366,20 @@ ISR (TIMER0_OVF_vect)
    }
 }
 
-
+void timer1(void)
+{
+   TCCR1A |= (1<<COM1A0);
+   TCCR1A |= (1<<COM1A1); // clear on compare match
+   TCCR1A |= (1<<WGM11);
+   
+   TCCR1B |= (1<<WGM12);
+   TCCR1B |= (1<<WGM13);
+   
+   TIMSK |= (1<< OCIE1A); // OC1A Int enablad
+   OCR1A = 0x30;           // Pulsdauer
+   OCR1B = 0x0FFF;
+   ICR1 = 0xAFFF;          // Pulsabstand
+}
 
 
 void timer2 (void)
@@ -404,7 +425,7 @@ ISR(TIMER2_COMP_vect)
       {
          //     if (cronstatus & (1<<CRON_HOME)) // eventuell nach xxx verschieben
          {
-            webspistatus |= (1<< SPI_SHIFT_BIT);         // shift_out veranlassen
+            webspistatus |= (1<<SPI_SHIFT_BIT);         // shift_out veranlassen
             //         cronstatus &=  ~ (1<<CRON_HOME); // nur ein shift-out nach cron-Request
          }
       }
@@ -432,6 +453,95 @@ ISR(TIMER2_COMP_vect)
    
 }
 
+uint8_t search_sensors(void)
+{
+   uint8_t i;
+   uint8_t id[OW_ROMCODE_SIZE];
+   uint8_t diff, nSensors;
+   
+   
+   ow_reset();
+   
+   nSensors = 0;
+   
+   diff = OW_SEARCH_FIRST;
+   while ( diff != OW_LAST_DEVICE && nSensors < MAXSENSORS )
+   {
+      DS18X20_find_sensor( &diff, &id[0] );
+      
+      if( diff == OW_PRESENCE_ERR )
+      {
+         lcd_gotoxy(0,1);
+         lcd_puts("No Sensor found\0" );
+         
+         delay_ms(800);
+         lcd_clr_line(1);
+         break;
+      }
+      
+      if( diff == OW_DATA_ERR )
+      {
+         lcd_gotoxy(0,1);
+         lcd_puts("Bus Error\0" );
+         break;
+      }
+      lcd_gotoxy(4,1);
+      
+      for ( i=0; i < OW_ROMCODE_SIZE; i++ )
+      {
+         //lcd_gotoxy(15,1);
+         //lcd_puthex(id[i]);
+         
+         gSensorIDs[nSensors][i] = id[i];
+         //delay_ms(100);
+      }
+      
+      nSensors++;
+   }
+   
+   return nSensors;
+}
+
+// start a measurement for all sensors on the bus:
+void start_temp_meas(void)
+{
+   
+   gTemp_measurementstatus=0;
+   if ( DS18X20_start_meas(NULL) != DS18X20_OK)
+   {
+      gTemp_measurementstatus=1;
+   }
+}
+
+// read the latest measurement off the scratchpad of the ds18x20 sensor
+// and store it in gTempdata
+void read_temp_meas(void){
+   uint8_t i;
+   uint8_t subzero, cel, cel_frac_bits;
+   for ( i=0; i<gNsensors; i++ )
+   {
+      
+      if ( DS18X20_read_meas( &gSensorIDs[i][0], &subzero,
+                             &cel, &cel_frac_bits) == DS18X20_OK )
+      {
+         gTempdata[i]=cel*10;
+         gTempdata[i]+=DS18X20_frac_bits_decimal(cel_frac_bits);
+         if (subzero)
+         {
+            gTempdata[i]=-gTempdata[i];
+         }
+      }
+      else
+      {
+         gTempdata[i]=0;
+      }
+   }
+}
+
+
+// Code 1_wire end
+
+
 volatile uint8_t testwert=17;
 
 void main (void)
@@ -451,7 +561,7 @@ void main (void)
    lcd_cls();
    lcd_puts(RAUM);
    
-   /*
+   
     SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
     SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);//	LAMPEAus sicher low
     SLAVE_OUT_PORT |= (1<<LAMPEAUS);
@@ -463,11 +573,11 @@ void main (void)
     SLAVE_OUT_PORT |= (1<<OFENAUS);
     delay_ms(30);
     SLAVE_OUT_PORT &= ~(1<<OFENAUS);
-    */
+   
    uint8_t Tastenwert=0;
    uint8_t TastaturCount=0;
-   uint8_t Servowert=0;
-   uint8_t Servorichtung=1;
+   //uint8_t Servowert=0;
+   //uint8_t Servorichtung=1;
    
    uint16_t TastenStatus=0;
    uint16_t Tastencount=0;
@@ -484,6 +594,31 @@ void main (void)
    uint16_t loopcount0=0;
    Init_SPI_Master();
    
+#pragma mark DS1820 init
+   // DS1820 init-stuff begin
+   uint8_t i=0;
+   uint8_t nSensors=0;
+   ow_reset();
+   gNsensors = search_sensors();
+   
+   delay_ms(100);
+   lcd_gotoxy(0,0);
+   lcd_puts("Sens: \0");
+   lcd_puthex(gNsensors);
+   if (gNsensors>0)
+   {
+      lcd_clr_line(1);
+      start_temp_meas();
+   }
+   i=0;
+   while(i<MAXSENSORS)
+   {
+      gTempdata[i]=0;
+      i++;
+   }
+   // DS1820 init-stuff end
+
+   
    
    uint8_t twierrcount=0;
    LOOPLEDPORT |=(1<<LOOPLED);
@@ -497,12 +632,12 @@ void main (void)
    //uint16_t startdelay1=0;
    
    //Zaehler fuer Zeit von (SDA || SCL = LO)
-   uint16_t twi_LO_count0=0;
-   uint16_t twi_LO_count1=0;
+ //  uint16_t twi_LO_count0=0;
+ //  uint16_t twi_LO_count1=0;
    uint8_t StartStatus=0x00; //status
    
    //Zaehler fuer Zeit von (SDA && SCL = HI)
-   uint16_t twi_HI_count0=0;
+//   uint16_t twi_HI_count0=0;
    
    uint8_t eepromWDT_Count0=eeprom_read_byte(&WDT_ErrCount0);
    uint8_t eepromWDT_Count1=eeprom_read_byte(&WDT_ErrCount1);
@@ -560,8 +695,10 @@ void main (void)
       
       //***************
       //	Test
-      
+      if (TEST)
+      {
       rxdata=1;
+      }
       //SlaveStatus |= (1<<TWI_OK_BIT);
       
       // end test
@@ -569,10 +706,12 @@ void main (void)
       
       
       
-      if ((SlaveStatus & (1<<TWI_OK_BIT)) &&(rxdata) && !(SlaveStatus & (1<< MANUELL)))	//Daten von TWI liegen vor und Manuell ist OFF
+      if ((SlaveStatus & (1<<TWI_OK_BIT)) &&(rxdata) && !(SlaveStatus & (1<<MANUELL)))	//Daten von TWI liegen vor und Manuell ist OFF
       {
-         
-         SlaveStatus &= ~(1<<TWI_OK_BIT); // simulation TWI
+         if (TEST)
+         {
+            SlaveStatus &= ~(1<<TWI_OK_BIT); // simulation TWI
+         }
          /*
           
           if (rxbuffer[3] < 6)
@@ -662,13 +801,13 @@ void main (void)
           
           //RingD2(2);
           //delay_ms(20);
-          
+          */
           Lampestatus=rxbuffer[0];
           //lcd_gotoxy(12,0);
           //lcd_puts("L:\0");
           //lcd_puthex(Lampestatus);
           //delay_ms(20);
-          */
+         
          /*
           // TWI_NEW_BIT wird in twislave-ISR gesetzt, wenn alle Daten aufgenommen sind
           
@@ -678,7 +817,7 @@ void main (void)
           */
          // Lampe
          
-          if ( Lampestatus  & (1<<LAMPEBIT)) // PIN 0
+          if ( Lampestatus  & (1<<LAMPEBIT)) // Bit 0
           {
           //delay_ms(1000);
           //Lampe ein
@@ -712,11 +851,24 @@ void main (void)
           // Ofen
           
           Radiatorstatus=rxbuffer[1];
+         
+         if (TEST)
+         {
+            /*
+            SLAVE_OUT_PORT |= (1<<LAMPEAUS); // Impuls an OFF
+            delay_ms(30);
+            SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);
+            delay_ms(200);
+            SLAVE_OUT_PORT |= (1<<LAMPEEIN); // Impuls an ON
+            delay_ms(30);
+            SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);
+             */
+         }
           //lcd_gotoxy(16,0);
           //lcd_puts("R:\0");
           
-          //if ( Slavestatus  & (1<<OFENBIT)) // PIN 1
-          if ( Radiatorstatus & 0x03) // // Ofen ein
+          //if ( Slavestatus  & (1<<OFENBIT)) // Bit 1
+          if ( Radiatorstatus & OFENBIT) // //Bit 1 Ofen ein
           {
           //delay_ms(1000);
           //Ofen ein
@@ -743,7 +895,9 @@ void main (void)
           //lcd_gotoxy(15,1);
           //lcd_puts("OFF\0");
           }
-          
+         
+ 
+         
           // ****************************
           //	tx_buffer laden
           // ****************************
@@ -759,8 +913,7 @@ void main (void)
           //lcd_put_tempbis99(tempBuffer>>2);
           
             txbuffer[INNEN]=(uint8_t)(tempBuffer>>2);// Vorlauf
-          
-          
+         
           //txbuffer[INNEN]=(uint8_t)(readKanal(INNEN)>>2);// Vorlauf
           //lcd_gotoxy(0,1);
           //lcd_puts("V\0");
@@ -768,33 +921,32 @@ void main (void)
           //
           //	Kuehltruhe abfragen
           //
-          if (SLAVE_IN_PIN & (1<< TIEFKUEHLALARMPIN)) // HI, Alles OK
+          if (SLAVE_IN_PIN & (1<<TIEFKUEHLALARMPIN)) // HI, Alles OK
           {
-          txbuffer[STATUS] &= ~(1<< TIEFKUEHLALARMPIN); // TIEFKUEHLALARMBit zuruecksetzen Bit 3
-             lcd_gotoxy(19,2);
-             lcd_putc('x');
-
+             txbuffer[STATUS] &= ~(1<<TIEFKUEHLALARMPIN); // TIEFKUEHLALARMBit zuruecksetzen Bit 3
+             lcd_gotoxy(18,2);
+             lcd_putc(' ');
           }
           else
           {
-          txbuffer[STATUS] |= (1<< TIEFKUEHLALARMPIN);	// TIEFKUEHLALARMBit setzen
-             lcd_gotoxy(19,2);
+             txbuffer[STATUS] |= (1<<TIEFKUEHLALARMPIN);	// TIEFKUEHLALARMBit setzen
+             lcd_gotoxy(18,2);
              lcd_putc('t');
           }
          
           //
           //	Wasseralarm abfragen
           //
-          if (SLAVE_IN_PIN & (1<< WASSERALARMPIN)) // HI, Alles OK
+          if (SLAVE_IN_PIN & (1<<WASSERALARMPIN)) // HI, Alles OK
           {
-          txbuffer[STATUS] &= ~(1<< WASSERALARMPIN); // WASSERALARMBit zuruecksetzen
+             txbuffer[STATUS] &= ~(1<<WASSERALARMPIN); // WASSERALARMBit zuruecksetzen
              lcd_gotoxy(19,2);
              lcd_putc(' ');
 
           }
           else
           {
-          txbuffer[STATUS] |= (1<< WASSERALARMPIN);	// WASSERALARMBit setzen
+          txbuffer[STATUS] |= (1<<WASSERALARMPIN);	// WASSERALARMBit setzen
              lcd_gotoxy(19,2);
              lcd_putc('w');
 
@@ -805,7 +957,7 @@ void main (void)
          
          
          /*
-          if (PINB & (1<< EINGANG0PIN))
+          if (PINB & (1<<EINGANG0PIN))
           {
           lcd_puts("OFF\0");
           }
@@ -873,7 +1025,7 @@ void main (void)
          //****************************
       }
       
-     
+     /*
       if (!(PINB & (1<<PB0))) // Taste 0
       {
          //lcd_gotoxy(12,1);
@@ -904,7 +1056,7 @@ void main (void)
          }//else
          
       }
-
+      */
       
       /* ******************** */
       //		initADC(TASTATURPIN);
@@ -959,7 +1111,7 @@ void main (void)
                case 0://
                {
                   
-                  SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 zuruecksetzen: Servo ein
+                  //SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 zuruecksetzen: Servo ein
                   //Schalterposition=0;
                   //Servoimpulsdauer=Servoposition[Schalterposition];
                }break;
@@ -1007,7 +1159,7 @@ void main (void)
                   if ((SlaveStatus & (1<<MANUELL)) &&  Schalterposition)
                   {
                      Schalterposition--;
-                     Servoimpulsdauer=Servoposition[Schalterposition];
+                     //Servoimpulsdauer=Servoposition[Schalterposition];
                   }
                   
                }break;
@@ -1020,7 +1172,7 @@ void main (void)
                   if (SlaveStatus & (1<<MANUELL))
                   {
                      Schalterposition=0;
-                     Servoimpulsdauer=Servoposition[Schalterposition];
+                     //Servoimpulsdauer=Servoposition[Schalterposition];
                   }
                   
                }break;
@@ -1030,15 +1182,15 @@ void main (void)
                   if ((SlaveStatus & (1<<MANUELL)) && (Schalterposition<4))
                   {
                      Schalterposition++;
-                     Servoimpulsdauer=Servoposition[Schalterposition];
+                     //Servoimpulsdauer=Servoposition[Schalterposition];
                   }
                }break;
                   
                case 7://
                { 
-                  if (Servoimpulsdauer>Servoposition[0])
+                  //if (Servoimpulsdauer>Servoposition[0])
                   {
-                     Servoimpulsdauer--;
+                     //Servoimpulsdauer--;
                      //lcd_gotoxy(0,16);
                      //lcd_putint2(Servoimpulsdauer);
                   }
@@ -1052,16 +1204,16 @@ void main (void)
                   
                case 9://
                { 
-                  if (Servoimpulsdauer<Servoposition[4])
+                  //if (Servoimpulsdauer<Servoposition[4])
                   {
-                     Servoimpulsdauer++;
+                     //Servoimpulsdauer++;
                      //lcd_gotoxy(0,2);
                      //lcd_putint2(Servoimpulsdauer);
                   }
                }break;
-                  lcd_gotoxy(8,1);
-                  lcd_puts("P:\0");
-                  lcd_putint2(Schalterposition);
+                  //lcd_gotoxy(8,1);
+                  //lcd_puts("P:\0");
+                  //lcd_putint2(Schalterposition);
                   
                case 10://
                { 
@@ -1077,7 +1229,7 @@ void main (void)
                {
                   
                   SlaveStatus &= ~(1<<MANUELL); // MANUELL OFF
-                  SERVOPORT &= ~(1<<SERVOPIN1);//	SERVOPIN1 zuruecksetzen: Servo aus
+                  //SERVOPORT &= ~(1<<SERVOPIN1);//	SERVOPIN1 zuruecksetzen: Servo aus
                }
                   
             }//switch Tastatur
