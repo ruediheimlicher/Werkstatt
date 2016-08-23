@@ -38,17 +38,9 @@
 #define SPI_CLK_LO SPI_CONTROL_PORT &= ~(1<<SPI_CONTROL_SCK)
 
 // ************************************************
-// defines fuer cronstatus
-#define CRON_START   0
-#define CRON_END     1
-#define CRON_WAIT    2
-
-#define CRON_SOLAR   4
-#define CRON_HOME    5
-#define CRON_ALARM   6
 
 // ************************************************
-// defines fuer webspistatus
+// defines fuer spistatus
 
 #define SPI_SHIFT_BIT			0	// SPI einleiten
 #define SPI_STATUS0_BIT			1
@@ -67,9 +59,9 @@ static volatile uint8_t						OutCounter=0x00;
 static volatile uint8_t						SendOKCounter=0x00;
 static volatile uint8_t						SendErrCounter=0x00;
 static volatile uint8_t						IncompleteCounter=0x00;
-static volatile uint16_t					TimeoutCounter=0x00;
-static volatile uint16_t					SPI_ErrCounter=0x00;
-static volatile uint16_t					resetcounter=0x00; // counter fuer Dauer reset-meldeimpuls vom Master
+//static volatile uint16_t					TimeoutCounter=0x00;
+static volatile uint8_t					SPI_ErrCounter=0x00;
+//static volatile uint16_t					resetcounter=0x00; // counter fuer Dauer reset-meldeimpuls vom Master
 // ************************************************
 // defines fuer spistatus
 #define ACTIVE_BIT				0
