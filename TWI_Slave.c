@@ -87,9 +87,10 @@
 #define TEMP1			1	// Bit fuer Temperatur 1
 #define TEMP2			2	// Bit fuer Temperatur 2
 
+// TWI
 #define STATUS			3	// Byte fuer Status
 
-#define STROMHH      4
+#define STROMHH      4 // Bytes fuer Stromdaten
 #define STROMH       5
 #define STROML       6
 
@@ -97,9 +98,10 @@
 #define SLAVE_IN_DDR           DDRB		// DDR fuer Slave
 #define SLAVE_IN_PIN          PINB  // PIN fuer Slave
 
-#define EINGANG0PIN			2	// PIN 2 von PORT B als Eingang
-#define TIEFKUEHLALARMPIN	3	// PIN 3 von PORT B als Eingang fuer TiefkuehlAlarn
-#define WASSERALARMPIN		4	// PIN 4 von PORT B als Eingang fuer Wasseralarm
+#define EINGANG0BIT			2	// PIN 2 von PORT B als Eingang
+#define TIEFKUEHLALARMBIT	3	// PIN 3 von PORT B als Eingang fuer TiefkuehlAlarn
+#define WASSERALARMBIT		4	// PIN 4 von PORT B als Eingang fuer Wasseralarm
+
 
 #define MANUELL		7	// Bit 7 von Status
 
@@ -132,7 +134,7 @@ uint8_t                 EEMEM WDT_ErrCount1;	// WDT Restart Events nach wdt-rese
 volatile uint8_t        Lampestatus=0x00;
 static volatile uint8_t Radiatorstatus=0x00;
 
-
+volatile uint16_t          Servostellung=0;					//	Abstand der Impulspakete
 //volatile uint16_t       Servotakt=20;					//	Abstand der Impulspakete
 //volatile uint16_t       Servopause=0x00;				//	Zaehler fuer Pause
 //volatile uint16_t       Servoimpuls=0x00;				//	Zaehler fuer Impuls
@@ -140,11 +142,12 @@ static volatile uint8_t Radiatorstatus=0x00;
 //volatile uint8_t        ServoimpulsdauerPuffer=22;		//	Puffer fuer Servoimpulsdauer
 //volatile uint8_t        ServoimpulsdauerSpeicher=0;		//	Speicher  fuer Servoimpulsdauer
 //volatile uint8_t        Potwert=45;
-volatile uint8_t        TWI_Pause=1;
+volatile uint8_t           TWI_Pause=1;
 //volatile uint8_t        ServoimpulsOK=0;				//	Zaehler fuer richtige Impulsdauer
 //uint8_t                 ServoimpulsNullpunkt=23;
 uint8_t                 ServoimpulsSchrittweite=10;
-uint8_t                 Servoposition[]={23,33,42,50,60};
+uint16_t                 Servoposition[]={1000,1250,1500,1750,2000,1750,1500,1250};
+
 volatile uint16_t       ADCImpuls=0;
 
 uint8_t                 EEMEM WDT_ErrCount;	// Akkumulierte WDT Restart Events
@@ -218,13 +221,14 @@ void SPI_shift_out(void)
    
    SPI_CLK_HI; // Clk sicher HI
    
+   /*
    lcd_gotoxy(5,1);
    lcd_putint(out_startdaten);
    lcd_putc('*');
    lcd_putint(complement);
    lcd_putc('*');
    lcd_putint(in_enddaten);
-   
+   */
    lcd_gotoxy(19,1);
    
    if (out_startdaten + in_enddaten==0xFF)
@@ -297,14 +301,14 @@ void slaveinit(void)
    //SLAVE_IN_DDR &= ~(1<<PB1);	//Bit 1 von PORT B als Eingang fŸr Taste 2
    //SLAVE_IN_PORT |= (1<<PB1);	//Pull-up
    
-   //TIEFKUEHLALARMPIN
-   SLAVE_IN_DDR &= ~(1<<TIEFKUEHLALARMPIN);	//Pin 3 von PORT B als Eingang fŸr Tiefkuehlalarm
-   SLAVE_IN_PORT |= (1<<TIEFKUEHLALARMPIN);	//Pull-up
+   //TIEFKUEHLALARMBIT
+   SLAVE_IN_DDR &= ~(1<<TIEFKUEHLALARMBIT);	//Pin 3 von PORT B als Eingang fŸr Tiefkuehlalarm
+   SLAVE_IN_PORT |= (1<<TIEFKUEHLALARMBIT);	//Pull-up
    
-   //WASSERALARMPIN
+   //WASSERALARMBIT
    
-   SLAVE_IN_DDR &= ~(1<<WASSERALARMPIN);	//Pin 4 von PORT B als Eingang fŸr Wasseralarm
-   SLAVE_IN_PORT |= (1<<WASSERALARMPIN);	//Pull-up
+   SLAVE_IN_DDR &= ~(1<<WASSERALARMBIT);	//Pin 4 von PORT B als Eingang fŸr Wasseralarm
+   SLAVE_IN_PORT |= (1<<WASSERALARMBIT);	//Pull-up
    
    LOOPLEDDDR |= (1<<LOOPLED);
    
@@ -352,8 +356,11 @@ ISR (TIMER0_OVF_vect)
    timer0counter0++;
    if (timer0counter0 >= 0x00FF)
    {
+      if (TEST)
+      {
       lcd_gotoxy(16,0);
       lcd_putint(timer0counter1&0xFF);
+      }
       
       timer0counter0=0;
       timer0counter1++;
@@ -368,18 +375,41 @@ ISR (TIMER0_OVF_vect)
 
 void timer1(void)
 {
-   TCCR1A |= (1<<COM1A0);
+   
+   SERVODDR |= (1<<SERVOPIN0);
+/*
+   TCCR1A = (1<<WGM10)|(1<<COM1A1)   // Set up the two Control registers of Timer1.
+   |(1<<COM1B1);             // Wave Form Generation is Fast PWM 8 Bit,
+   TCCR1B = (1<<WGM12)|(1<<CS12)     // OC1A and OC1B are cleared on compare match
+   |(1<<CS10);               // and set at BOTTOM. Clock Prescaler is 1024.
+   
+   OCR1A = 63;                       // Dutycycle of OC1A = 25%
+   //OCR1B = 127;                      // Dutycycle of OC1B = 50%
+
+   return;
+   */
+   // https://www.mikrocontroller.net/topic/83609
+   OCR1A = 0x3E8;           // Pulsdauer 1ms
+   OCR1A = 1000;
+   OCR1A = Servoposition[2];
+   //OCR1B = 0x0FFF;
+   ICR1 = 0xC3FF;          // Pulsabstand 50 ms  0x9FFF: 40ms
+
+  // TCCR1A |= (1<<COM1A0);
    TCCR1A |= (1<<COM1A1); // clear on compare match
    TCCR1A |= (1<<WGM11);
    
    TCCR1B |= (1<<WGM12);
    TCCR1B |= (1<<WGM13);
    
-   TIMSK |= (1<< OCIE1A); // OC1A Int enablad
-   OCR1A = 0x30;           // Pulsdauer
-   OCR1B = 0x0FFF;
-   ICR1 = 0xAFFF;          // Pulsabstand
+   TCCR1B |= (1<<CS11);
+  // TCCR1B |= (1<<CS10);
+   
+   
+   
+ //  TIMSK |= (1<<OCIE1A) | (1<<TICIE1); // OC1A Int enablad
 }
+
 
 
 void timer2 (void)
@@ -592,7 +622,11 @@ void main (void)
    //	wdt_enable(WDTO_2S);
    
    uint16_t loopcount0=0;
+   uint16_t loopcount1=0;
+
+   
    Init_SPI_Master();
+   
    
 #pragma mark DS1820 init
    // DS1820 init-stuff begin
@@ -658,6 +692,8 @@ void main (void)
       //lcd_puts("W\0");
    }
    timer0();
+ //  timer1();
+   lcd_cls();
    while (1)
    {
       wdt_reset();
@@ -667,6 +703,15 @@ void main (void)
       {
          loopcount0=0;
          LOOPLEDPORT ^=(1<<LOOPLED);
+         loopcount1++;
+         if (loopcount1 >= 0x0F)
+         {
+            loopcount1=0;
+            Servostellung++;
+            OCR1A = Servoposition[Servostellung %8];
+         }
+         
+         
          //lcd_gotoxy(0,0);
          //lcd_puts("wdt\0");
          //lcd_puthex(tempWDT_Count);
@@ -712,7 +757,7 @@ void main (void)
          {
             SlaveStatus &= ~(1<<TWI_OK_BIT); // simulation TWI
          }
-         /*
+          /*
           
           if (rxbuffer[3] < 6)
           {
@@ -816,18 +861,20 @@ void main (void)
           SlaveStatus &= ~(1<<TWI_NEW_BIT); // Die Aktionen sollen nur einmal ausgeloest werden
           */
          // Lampe
-         
+         lcd_gotoxy(12,0);
+         lcd_putc('L');
+
           if ( Lampestatus  & (1<<LAMPEBIT)) // Bit 0
           {
           //delay_ms(1000);
           //Lampe ein
-          //lcd_gotoxy(19,1);
-          //lcd_putc('I');
           SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
           SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
           SLAVE_OUT_PORT |= (1<<LAMPEEIN);
           delay_ms(30);
           SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);
+             lcd_putc('1');
+
           //lcd_gotoxy(15,1);
           //lcd_puts("ON \0");
           }
@@ -843,6 +890,8 @@ void main (void)
           SLAVE_OUT_PORT |= (1<<LAMPEAUS);
           delay_ms(30);
           SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);
+             lcd_putc('0');
+
           //lcd_gotoxy(15,1);
           //lcd_puts("OFF\0");
           
@@ -864,8 +913,8 @@ void main (void)
             SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);
              */
          }
-          //lcd_gotoxy(16,0);
-          //lcd_puts("R:\0");
+          lcd_gotoxy(14,0);
+          lcd_putc('R');
           
           //if ( Slavestatus  & (1<<OFENBIT)) // Bit 1
           if ( Radiatorstatus & OFENBIT) // //Bit 1 Ofen ein
@@ -880,7 +929,7 @@ void main (void)
           delay_ms(30);
           SLAVE_OUT_PORT &= ~(1<<OFENEIN);
           //lcd_gotoxy(15,1);
-          //lcd_puts("ON \0");
+          lcd_putc('1');
           }
           else
           {
@@ -892,8 +941,8 @@ void main (void)
           SLAVE_OUT_PORT |= (1<<OFENAUS); // Impuls an OFF
           delay_ms(30);
           SLAVE_OUT_PORT &= ~(1<<OFENAUS);
-          //lcd_gotoxy(15,1);
-          //lcd_puts("OFF\0");
+             //lcd_gotoxy(15,1);
+             lcd_putc('0');
           }
          
  
@@ -903,51 +952,81 @@ void main (void)
           // ****************************
           
           //lcd_clr_line(1);
+         
+         // Thermomenter analog:
           // Temperatur lesen
-          uint16_t tempBuffer=0;
-          initADC(INNEN);
-          tempBuffer=readKanal(INNEN);
+         // uint16_t tempBuffer=0;
+         // initADC(INNEN);
+         // tempBuffer=readKanal(INNEN);
           //lcd_gotoxy(0,1);
           //lcd_puts("T\0");
           //lcd_putint(tempBuffer>>2);
           //lcd_put_tempbis99(tempBuffer>>2);
           
-            txbuffer[INNEN]=(uint8_t)(tempBuffer>>2);// Vorlauf
+          //  txbuffer[INNEN]=(uint8_t)(tempBuffer>>2);// Vorlauf
          
-          //txbuffer[INNEN]=(uint8_t)(readKanal(INNEN)>>2);// Vorlauf
-          //lcd_gotoxy(0,1);
-          //lcd_puts("V\0");
-          
+         // Temperatur messen mit DS18S20
+         if (gNsensors) // Sensor eingeseteckt
+         {
+            start_temp_meas();
+            delay_ms(800);
+            read_temp_meas();
+            uint8_t line=0;
+            //Sensor 1
+            lcd_gotoxy(0,line);
+            lcd_puts("T:     \0");
+            if (gTempdata[0]/10>=100)
+            {
+               lcd_gotoxy(3,line);
+               lcd_putint((gTempdata[0]/10));
+            }
+            else
+            {
+               lcd_gotoxy(2,line);
+               lcd_putint2((gTempdata[0]/10));
+            }
+            
+            lcd_putc('.');
+            lcd_putint1(gTempdata[0]%10);
+         }
+         txbuffer[INNEN]=2*((gTempdata[0]/10)& 0x00FF);// T kommt mit Faktor 10 vom DS. Auf TWI ist T verdoppelt
+         // Halbgrad addieren
+         if (gTempdata[0]%10 >=5) // Dezimalstelle ist >=05: Wert  aufrunden, 1 addieren
+         {
+            txbuffer[INNEN] +=1;
+         }
+
+         
           //
           //	Kuehltruhe abfragen
           //
-          if (SLAVE_IN_PIN & (1<<TIEFKUEHLALARMPIN)) // HI, Alles OK
+          if (SLAVE_IN_PIN & (1<<TIEFKUEHLALARMBIT)) // HI, Alles OK
           {
-             txbuffer[STATUS] &= ~(1<<TIEFKUEHLALARMPIN); // TIEFKUEHLALARMBit zuruecksetzen Bit 3
-             lcd_gotoxy(18,2);
+             txbuffer[STATUS] &= ~(1<<TIEFKUEHLALARMBIT); // TIEFKUEHLALARMBit zuruecksetzen Bit 3
+             lcd_gotoxy(17,1);
              lcd_putc(' ');
           }
           else
           {
-             txbuffer[STATUS] |= (1<<TIEFKUEHLALARMPIN);	// TIEFKUEHLALARMBit setzen
-             lcd_gotoxy(18,2);
+             txbuffer[STATUS] |= (1<<TIEFKUEHLALARMBIT);	// TIEFKUEHLALARMBit setzen
+             lcd_gotoxy(17,1);
              lcd_putc('t');
           }
          
           //
           //	Wasseralarm abfragen
           //
-          if (SLAVE_IN_PIN & (1<<WASSERALARMPIN)) // HI, Alles OK
+          if (SLAVE_IN_PIN & (1<<WASSERALARMBIT)) // HI, Alles OK
           {
-             txbuffer[STATUS] &= ~(1<<WASSERALARMPIN); // WASSERALARMBit zuruecksetzen
-             lcd_gotoxy(19,2);
+             txbuffer[STATUS] &= ~(1<<WASSERALARMBIT); // WASSERALARMBit zuruecksetzen
+             lcd_gotoxy(18,1);
              lcd_putc(' ');
 
           }
           else
           {
-          txbuffer[STATUS] |= (1<<WASSERALARMPIN);	// WASSERALARMBit setzen
-             lcd_gotoxy(19,2);
+          txbuffer[STATUS] |= (1<<WASSERALARMBIT);	// WASSERALARMBit setzen
+             lcd_gotoxy(18,1);
              lcd_putc('w');
 
           }
@@ -957,7 +1036,7 @@ void main (void)
          
          
          /*
-          if (PINB & (1<<EINGANG0PIN))
+          if (PINB & (1<<EINGANG0BIT))
           {
           lcd_puts("OFF\0");
           }
@@ -971,12 +1050,7 @@ void main (void)
          
 #pragma mark SPI
          /***** SPI: Daten von SPI_Slave_Strom abfragen **************** */
-         lcd_gotoxy(0,1);
-         lcd_puts("SPI");
-         out_startdaten = 0xA1;
-         out_hbdaten = 0xA2;
-         out_lbdaten = 0xA3;
-         //out_enddaten = 0xA4;
+          //out_enddaten = 0xA4;
          
          inbuffer[0]=0;
          inbuffer[1]=0;
@@ -988,31 +1062,43 @@ void main (void)
          outbuffer[1] = testwert;
          outbuffer[2] = testwert;
          
-         lcd_gotoxy(0,2);
-         lcd_puts("oS \0");
-         lcd_putint(outbuffer[0]);
-         lcd_putc('*');
-         lcd_putint(outbuffer[1]);
-         lcd_putc('*');
-         lcd_putint(outbuffer[2]);
-         lcd_putc('s');
-         lcd_putint(out_startdaten);
-         
+         if (TEST)
+         {
+            lcd_gotoxy(0,1);
+            lcd_puts("SPI");
+            out_startdaten = 0xA1;
+            out_hbdaten = 0xA2;
+            out_lbdaten = 0xA3;
+            lcd_gotoxy(0,1);
+            lcd_putint16(gTempdata[0]);
+            
+            lcd_gotoxy(0,2);
+            lcd_puts("oS \0");
+            lcd_putint(outbuffer[0]);
+            lcd_putc('*');
+            lcd_putint(outbuffer[1]);
+            lcd_putc('*');
+            lcd_putint(outbuffer[2]);
+            lcd_putc('s');
+            lcd_putint(out_startdaten);
+         }
          
          //****************************
          SPI_shift_out();
          //****************************
          
-         lcd_gotoxy(0,3);
-         lcd_puts("iS \0");
-         lcd_putint(inbuffer[0]);
-         lcd_putc('*');
-         lcd_putint(inbuffer[1]);
-         lcd_putc('*');
-         lcd_putint(inbuffer[2]);
-         lcd_putc('*');
-         lcd_putint(in_startdaten);
-         
+         if (TEST)
+         {
+            lcd_gotoxy(0,3);
+            lcd_puts("iS \0");
+            lcd_putint(inbuffer[0]);
+            lcd_putc('*');
+            lcd_putint(inbuffer[1]);
+            lcd_putc('*');
+            lcd_putint(inbuffer[2]);
+            lcd_putc('*');
+            lcd_putint(in_startdaten);
+         }
          
          txbuffer[STROMHH]= inbuffer[0];
          txbuffer[STROMH] = inbuffer[1];
