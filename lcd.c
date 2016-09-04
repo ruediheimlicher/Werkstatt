@@ -236,6 +236,20 @@ void lcd_putint1(uint8_t zahl)	//einstellige Zahl
 	lcd_puts(string);
 }
 
+void lcd_putint16(uint16_t zahl)
+{
+   char string[8];
+   int8_t i;                             // schleifenzŠhler
+   
+   string[7]='\0';                       // String Terminator
+   for(i=6; i>=0; i--)
+   {
+      string[i]=(zahl % 10) +'0';         // Modulo rechnen, dann den ASCII-Code von '0' addieren
+      zahl /= 10;
+   }
+   lcd_puts(string);
+}
+
 
 
 /*************************************************************************
