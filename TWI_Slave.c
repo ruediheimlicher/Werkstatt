@@ -103,7 +103,7 @@
 #define WASSERALARMBIT		4	// PIN 4 von PORT B als Eingang fuer Wasseralarm
 
 
-#define MANUELL		1	// Bit 7 von Status
+#define MANUELLBIT		7	// Bit 7 von Status
 
 #define LOOPLEDDDR		DDRB
 #define LOOPLEDPORT		PORTB
@@ -751,7 +751,7 @@ void main (void)
       
       
       
-      if ((SlaveStatus & (1<<TWI_OK_BIT)) &&(rxdata) && !(SlaveStatus & (1<<MANUELL)))	//Daten von TWI liegen vor und Manuell ist OFF
+      if ((SlaveStatus & (1<<TWI_OK_BIT)) &&(rxdata) && !(SlaveStatus & (1<<MANUELLBIT)))	//Daten von TWI liegen vor und MANUELLBIT ist OFF
       {
          if (TEST)
          {
@@ -1159,13 +1159,13 @@ void main (void)
           2:
           3: Uhr aus
           4: Schalterpos -
-          5: Manuell ein
+          5: MANUELLBIT ein
           6: Schalterpos +
           7:
           8:
           9:
           
-          12: Manuell aus
+          12: MANUELLBIT aus
           */
          
          TastaturCount++;
@@ -1204,7 +1204,7 @@ void main (void)
                   
                case 1:	//	Uhr ein
                {
-                  if (SlaveStatus & (1<<MANUELL))
+                  if (SlaveStatus & (1<<MANUELLBIT))
                   {
                      SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
                      SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
@@ -1230,7 +1230,7 @@ void main (void)
                   
                case 3: //	Lampe aus
                {
-                  if (SlaveStatus & (1<<MANUELL))
+                  if (SlaveStatus & (1<<MANUELLBIT))
                   {
                      SLAVE_OUT_PORT &= ~(1<<LAMPEEIN);//	LAMPEEIN sicher low
                      SLAVE_OUT_PORT &= ~(1<<LAMPEAUS);//	LAMPEAUS sicher low
@@ -1242,7 +1242,7 @@ void main (void)
                   
                case 4://
                { 
-                  if ((SlaveStatus & (1<<MANUELL)) &&  Schalterposition)
+                  if ((SlaveStatus & (1<<MANUELLBIT)) &&  Schalterposition)
                   {
                      Schalterposition--;
                      //Servoimpulsdauer=Servoposition[Schalterposition];
@@ -1252,10 +1252,10 @@ void main (void)
                   
                case 5://
                { 
-                  //Slavestatus |= (1<<MANUELL);	// MANUELL ON
+                  //Slavestatus |= (1<<MANUELLBIT);	// MANUELLBIT ON
                   //PORTD |= (1<<PD3);
                   //SERVOPORT |= (1<<SERVOPIN1);//	SERVOPIN1 zuruecksetzen: Servo ein
-                  if (SlaveStatus & (1<<MANUELL))
+                  if (SlaveStatus & (1<<MANUELLBIT))
                   {
                      Schalterposition=0;
                      //Servoimpulsdauer=Servoposition[Schalterposition];
@@ -1265,7 +1265,7 @@ void main (void)
                   
                case 6://
                { 
-                  if ((SlaveStatus & (1<<MANUELL)) && (Schalterposition<4))
+                  if ((SlaveStatus & (1<<MANUELLBIT)) && (Schalterposition<4))
                   {
                      Schalterposition++;
                      //Servoimpulsdauer=Servoposition[Schalterposition];
@@ -1314,7 +1314,7 @@ void main (void)
                case 12:
                {
                   
-                  SlaveStatus &= ~(1<<MANUELL); // MANUELL OFF
+                  SlaveStatus &= ~(1<<MANUELLBIT); // MANUELLBIT OFF
                   //SERVOPORT &= ~(1<<SERVOPIN1);//	SERVOPIN1 zuruecksetzen: Servo aus
                }
                   
