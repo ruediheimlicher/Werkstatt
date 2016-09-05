@@ -79,7 +79,7 @@
 #define TASTATURPORT PORTC
 #define TASTATURDDR  DDRC
 
-#define TASTATURPIN	3
+#define TASTATURPIN	1
 #define POTPIN			0
 #define BUZZERPIN		2
 
@@ -103,7 +103,7 @@
 #define WASSERALARMBIT		4	// PIN 4 von PORT B als Eingang fuer Wasseralarm
 
 
-#define MANUELL		7	// Bit 7 von Status
+#define MANUELL		1	// Bit 7 von Status
 
 #define LOOPLEDDDR		DDRB
 #define LOOPLEDPORT		PORTB
