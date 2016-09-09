@@ -10,4 +10,3 @@ build/*
 *.hex
 *.o
 .dep/
-Source/*
