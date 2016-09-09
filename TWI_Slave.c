@@ -30,7 +30,7 @@
 //									*
 //***********************************
 
-#define TEST 1
+#define TEST 0
 
 #define RAUM		"WERKSTATT SPI"
 
@@ -80,8 +80,7 @@
 #define TASTATURDDR  DDRC
 
 #define TASTATURPIN	1
-#define POTPIN			0
-#define BUZZERPIN		2
+//#define BUZZERPIN		2
 
 #define INNEN			0	// Bit fuer Innentemperatur
 #define TEMP1			1	// Bit fuer Temperatur 1
@@ -323,6 +322,9 @@ void slaveinit(void)
    
    TWI_DDR &= ~(1<<SCLPIN);//Bit 5 von PORT C als Eingang fŸr SCL
    TWI_PORT |= (1<<SCLPIN); // HI
+   
+   
+   TASTATURDDR &= ~(1<<TASTATURPIN);
    
    SlaveStatus=0;
    SlaveStatus |= (1<<TWI_WAIT_BIT);
@@ -666,12 +668,12 @@ void main (void)
    //uint16_t startdelay1=0;
    
    //Zaehler fuer Zeit von (SDA || SCL = LO)
- //  uint16_t twi_LO_count0=0;
- //  uint16_t twi_LO_count1=0;
+   uint16_t twi_LO_count0=0;
+   uint16_t twi_LO_count1=0;
    uint8_t StartStatus=0x00; //status
    
    //Zaehler fuer Zeit von (SDA && SCL = HI)
-//   uint16_t twi_HI_count0=0;
+   uint16_t twi_HI_count0=0;
    
    uint8_t eepromWDT_Count0=eeprom_read_byte(&WDT_ErrCount0);
    uint8_t eepromWDT_Count1=eeprom_read_byte(&WDT_ErrCount1);
@@ -694,6 +696,9 @@ void main (void)
    timer0();
  //  timer1();
    lcd_cls();
+   
+//   initADC(TASTATURPIN);
+   
    while (1)
    {
       wdt_reset();
@@ -709,6 +714,10 @@ void main (void)
             loopcount1=0;
             Servostellung++;
             OCR1A = Servoposition[Servostellung %8];
+            //lcd_gotoxy(0,0);
+            //lcd_puts("rx");
+            //lcd_putint(rxdata);
+
          }
          
          
@@ -724,6 +733,8 @@ void main (void)
       {
          if ((TWI_PIN & (1<<SCLPIN))&&(!(TWI_PIN & (1<<SDAPIN))))// Startbedingung vom Master: SCL HI und SDA LO
          {
+            lcd_gotoxy(17,0);
+            lcd_puts("TWI");
             init_twi_slave (SLAVE_ADRESSE);
             sei();
             SlaveStatus &= ~(1<<TWI_WAIT_BIT);
@@ -742,7 +753,7 @@ void main (void)
       //	Test
       if (TEST)
       {
-      rxdata=1;
+         rxdata=1;
       }
       //SlaveStatus |= (1<<TWI_OK_BIT);
       
@@ -753,7 +764,7 @@ void main (void)
       
       if ((SlaveStatus & (1<<TWI_OK_BIT)) &&(rxdata) && !(SlaveStatus & (1<<MANUELLBIT)))	//Daten von TWI liegen vor und MANUELLBIT ist OFF
       {
-         if (TEST)
+         //if (TEST)
          {
             SlaveStatus &= ~(1<<TWI_OK_BIT); // simulation TWI
          }
@@ -1004,7 +1015,7 @@ void main (void)
           {
              txbuffer[STATUS] &= ~(1<<TIEFKUEHLALARMBIT); // TIEFKUEHLALARMBit zuruecksetzen Bit 3
              lcd_gotoxy(17,1);
-             lcd_putc(' ');
+             lcd_putc('-');
           }
           else
           {
@@ -1020,7 +1031,7 @@ void main (void)
           {
              txbuffer[STATUS] &= ~(1<<WASSERALARMBIT); // WASSERALARMBit zuruecksetzen
              lcd_gotoxy(18,1);
-             lcd_putc(' ');
+             lcd_putc('-');
 
           }
           else
@@ -1045,8 +1056,9 @@ void main (void)
           lcd_puts("ON \0");
           }
           */
-         
-         rxdata=0;               // TWI erledigt
+        // lcd_gotoxy(0,1);
+        // lcd_putint(rxbuffer[0]);
+        // rxdata=0;               // TWI erledigt
          
 #pragma mark SPI
          /***** SPI: Daten von SPI_Slave_Strom abfragen **************** */
@@ -1059,35 +1071,36 @@ void main (void)
          testwert++;
          
          outbuffer[0] = testwert;
-         outbuffer[1] = testwert;
-         outbuffer[2] = testwert;
+         outbuffer[1] = 0;//testwert;
+         outbuffer[2] = 0;//testwert;
          
-         if (TEST)
+        // if (TEST)
          {
-            lcd_gotoxy(0,1);
-            lcd_puts("SPI");
+            //lcd_gotoxy(0,1);
+            //lcd_puts("SPI");
             out_startdaten = 0xA1;
             out_hbdaten = 0xA2;
             out_lbdaten = 0xA3;
-            lcd_gotoxy(0,1);
-            lcd_putint16(gTempdata[0]);
+            //lcd_gotoxy(0,1);
+            //lcd_putint16(gTempdata[0]);
             
             lcd_gotoxy(0,2);
             lcd_puts("oS \0");
             lcd_putint(outbuffer[0]);
             lcd_putc('*');
-            lcd_putint(outbuffer[1]);
-            lcd_putc('*');
-            lcd_putint(outbuffer[2]);
+            //lcd_putint(outbuffer[1]);
+            //lcd_putc('*');
+            //lcd_putint(outbuffer[2]);
             lcd_putc('s');
             lcd_putint(out_startdaten);
+            
          }
          
          //****************************
          SPI_shift_out();
          //****************************
          
-         if (TEST)
+     //    if (TEST)
          {
             lcd_gotoxy(0,3);
             lcd_puts("iS \0");
@@ -1098,7 +1111,10 @@ void main (void)
             lcd_putint(inbuffer[2]);
             lcd_putc('*');
             lcd_putint(in_startdaten);
+            
          }
+         lcd_gotoxy(12,2);
+         lcd_putint16(inbuffer[0]+0xFF*inbuffer[1]);
          
          txbuffer[STROMHH]= inbuffer[0];
          txbuffer[STROMH] = inbuffer[1];
