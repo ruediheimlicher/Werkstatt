@@ -696,7 +696,7 @@ void main (void)
       //lcd_puts("W\0");
    }
    timer0();
- //  timer1();
+   timer1();
    lcd_cls();
    
 //   initADC(TASTATURPIN);
@@ -1128,9 +1128,9 @@ void main (void)
          lcd_gotoxy(12,2);
          lcd_putint16(inbuffer[0]+0xFF*inbuffer[1]);
          
-         txbuffer[STROMHH]= inbuffer[0];
-         txbuffer[STROMH] = inbuffer[1];
-         txbuffer[STROML] = inbuffer[2];
+         txbuffer[STROMHH]= inbuffer[0]; // byte 4
+         txbuffer[STROMH] = inbuffer[1]; // byte 5
+         txbuffer[STROML] = inbuffer[2]; // byte 6
          
          /***** End SPI**************** */
          
