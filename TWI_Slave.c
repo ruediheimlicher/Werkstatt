@@ -1128,9 +1128,9 @@ void main (void)
          lcd_gotoxy(12,2);
          lcd_putint16(inbuffer[0]+0xFF*inbuffer[1]);
          
-         txbuffer[STROMHH]= inbuffer[0]; // byte 4
-         txbuffer[STROMH] = inbuffer[1]; // byte 5
-         txbuffer[STROML] = inbuffer[2]; // byte 6
+         txbuffer[STROML]= inbuffer[0]; // L: byte 4
+         txbuffer[STROMH] = inbuffer[1]; // H: byte 5
+         txbuffer[STROMHH] = inbuffer[2]; // HH: byte 6
          
          /***** End SPI**************** */
          
