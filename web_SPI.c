@@ -200,6 +200,8 @@ uint8_t SPI_shift_out_byte(uint8_t out_byte)
       _delay_us(delayfaktor*out_PULSE_DELAY);
    } // for i
    _delay_us(delayfaktor*out_PULSE_DELAY);
+   
+   SPI_CONTROL_PORTPIN |= (1<<SPI_CONTROL_MISO);
    return in_byte;
 }
 

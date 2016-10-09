@@ -339,15 +339,15 @@ void timer0 (void)
 {
    // Timer fuer Servo
    //	TCCR0 |= (1<<CS00)|(1<<CS02);	//Takt /1024
-   TCCR0 |= (1<<CS02);
-   TCCR0 |= (1<<CS00);
+   TCCR0B |= (1<<CS02);
+   TCCR0B |= (1<<CS00);
    //8-Bit Timer, Timer clock = system clock/256
    //TCCR0 |= (1<<CS00)|(1<<CS01);	//Takt /64 Intervall 64 us
    
    //	TCCR0 |= (1<<CS02);					//Takt 4 MHz /256 Intervall 64 us
    
-   TIFR |= (1<<TOV0); 				//Clear TOV0 Timer/Counter Overflow Flag. clear pending interrupts
-   TIMSK |= (1<<TOIE0);			//Overflow Interrupt aktivieren
+   TIFR0 |= (1<<TOV0); 				//Clear TOV0 Timer/Counter Overflow Flag. clear pending interrupts
+   TIMSK0 |= (1<<TOIE0);			//Overflow Interrupt aktivieren
    TCNT0 = 0x00;					//RŸcksetzen des Timers
    
    //	SERVOPORT |= (1<<CONTROL_B);//	CONTROL_B setzen
@@ -421,10 +421,10 @@ void timer2 (void)
    //----------------------------------------------------
    // Set up timer 0 to generate interrupts @ 1000Hz
    //----------------------------------------------------
-   TCCR2 = _BV(WGM20);
-   TCCR2 = _BV(CS20) | _BV(CS22);
-   OCR2 = 0x2;
-   TIMSK = _BV(OCIE2);
+   TCCR2A = _BV(WGM20);
+   TCCR2B |= (1<<CS20) | (1<<CS22);
+   OCR2A = 0x2;
+   TIMSK2 |= (1<<OCIE2A);
    
    
    // Timer fuer Exp
@@ -441,7 +441,7 @@ void timer2 (void)
     */
 }
 
-ISR(TIMER2_COMP_vect)
+ISR(TIMER2_COMPA_vect)
 {
    
    TCNT2=0;
