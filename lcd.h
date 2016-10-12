@@ -34,12 +34,28 @@
 
 /* AVR port and pins connected to '164 and/or LCD */
 
+/*
+// Atmega8
 #define LCD_PORT                PORTC
-#define LCD_DDR                DDRC
+#define LCD_DDR                 DDRC
 
 #define LCD_RSDS_PIN            0
-#define LCD_ENABLE_PIN          1
+ #define LCD_ENABLE_A_PIN          1
+ #define LCD_CLOCK_PIN           2
+
+ 
+ */
+
+
+// Atmega644
+#define LCD_PORT                PORTD
+#define LCD_DDR                 DDRD
+
+
+#define LCD_RSDS_PIN            0
+#define LCD_ENABLE_A_PIN          1
 #define LCD_CLOCK_PIN           2
+#define LCD_ENABLE_B_PIN          3 // zweites Display
 
 
 /* number of columns on the display */
@@ -84,7 +100,7 @@
 
 /* F_CPU is used by delay routines from util/delay.h. May already be defined */
 #ifndef F_CPU
-#define F_CPU 1000000UL  /* 1 MHz CPU clock */
+#define F_CPU 8000000UL  /* 1 MHz CPU clock */
 #endif
 
 /* functions */

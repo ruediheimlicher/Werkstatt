@@ -13,13 +13,22 @@ extern "C" {
 
 #define MAXSENSORS 5
 
-
+/*
 // Atmega8 PORTC PIN3 als Anschluss fuer DS-Sensor
 #define OW_PIN  PORTC3
 #define OW_IN   PINC
 #define OW_OUT  PORTC
 #define OW_DDR  DDRC
-
+*/
+   
+// Atmega644 PORTA PIN3 als Anschluss fuer DS-Sensoren
+#define OW_PIN  PORTA4
+#define OW_IN   PINA
+#define OW_OUT  PORTA
+#define OW_DDR  DDRA
+   
+   
+   
 #define OW_CONF_DELAYOFFSET 0
 
 

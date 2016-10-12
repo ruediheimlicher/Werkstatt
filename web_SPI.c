@@ -8,21 +8,21 @@
  */
 
 #include <avr/io.h>
-
+/*
 // defines fuer Atmega328p
 
 #define OSZIPORT		PORTC
 #define OSZIPORTDDR	DDRC
 #define OSZIPORTPIN	PINC
-#define PULS			0
+#define PULSA			0
 
-#define OSZILO OSZIPORT &= ~(1<<PULS)
-#define OSZIHI OSZIPORT |= (1<<PULS)
-#define OSZITOGG OSZIPORT ^= (1<<PULS)
+#define OSZILO OSZIPORT &= ~(1<<PULSA)
+#define OSZIHI OSZIPORT |= (1<<PULSA)
+#define OSZITOGG OSZIPORT ^= (1<<PULSA)
 
-#define SPI_CONTROL_DDR			DDRD						// DDR fuer SPI
-#define SPI_CONTROL_PORT		PORTD						// Port fuer SPI
-#define SPI_CONTROL_PORTPIN	PIND						// Port-Pin fuer SPI
+#define SPI_CONTROL_DDR			DDRD						// DDR fuer Soft-SPI
+#define SPI_CONTROL_PORT		PORTD						// Port fuer Soft-SPI
+#define SPI_CONTROL_PORTPIN	PIND						// Port-Pin fuer Soft-SPI
 
 // ************************************************
 // Modifizierte Belegung fuer Betrieb mit Webserver
@@ -32,6 +32,35 @@
 #define SPI_CONTROL_MISO		PORTD1					// Eingang fuer Daten vom Slave
 #define SPI_CONTROL_SCK			PORTD2					// Ausgang fuer CLK
 #define SPI_CONTROL_CS_HC		PORTD3					// Ausgang CS fuer Slave
+*/
+
+// defines fuer Atmega644p
+
+#define OSZIPORT		PORTC
+#define OSZIPORTDDR	DDRC
+#define OSZIPORTPIN	PINC
+#define PULSA			2
+#define PULSB			3
+
+#define OSZILO OSZIPORT &= ~(1<<PULSA)
+#define OSZIHI OSZIPORT |= (1<<PULSA)
+#define OSZITOGG OSZIPORT ^= (1<<PULSA)
+
+#define SPI_CONTROL_DDR			DDRB						// DDR fuer Soft-SPI
+#define SPI_CONTROL_PORT		PORTB						// Port fuer Soft-SPI
+#define SPI_CONTROL_PORTPIN	PINB						// Port-Pin fuer Soft-SPI
+
+// ************************************************
+// Modifizierte Belegung fuer Betrieb mit Webserver
+// ************************************************
+
+#define SPI_CONTROL_MOSI		PORTB0					// Ausgang fuer Daten zum Slave
+#define SPI_CONTROL_MISO		PORTB1					// Eingang fuer Daten vom Slave
+#define SPI_CONTROL_SCK			PORTB2					// Ausgang fuer CLK
+#define SPI_CONTROL_CS_HC		PORTB3					// Ausgang CS fuer Slave
+
+
+
 
 
 #define SPI_CLK_HI SPI_CONTROL_PORT |= (1<<SPI_CONTROL_SCK)
@@ -61,7 +90,7 @@ static volatile uint8_t						SendErrCounter=0x00;
 static volatile uint8_t						IncompleteCounter=0x00;
 //static volatile uint16_t					TimeoutCounter=0x00;
 static volatile uint8_t					SPI_ErrCounter=0x00;
-//static volatile uint16_t					resetcounter=0x00; // counter fuer Dauer reset-meldeimpuls vom Master
+//static volatile uint16_t					resetcounter=0x00; // counter fuer Dauer reset-meldeimPULSA vom Master
 // ************************************************
 // defines fuer spistatus
 #define ACTIVE_BIT				0
@@ -123,8 +152,6 @@ void Init_SPI_Master(void)
 	SPI_CONTROL_DDR &= ~(1<<SPI_CONTROL_MISO);																// MISO Eingang
 	SPI_CONTROL_PORT |=(1<<SPI_CONTROL_MISO);																	// HI
 
-	OSZIPORTDDR |=(1<<PULS);
-	OSZIPORT |= (1<<PULS);
 
 } 
 

@@ -67,7 +67,7 @@ uint8_t ow_reset(void)
         // and input-pin gets back to high due to pull-up-resistor
         ow_delay_us(233);  // max 240us in total
         if (err==1){
-                return(1); // no presence puls
+                return(1); // no presence pulse
         }
         if( ow_input_pin_state() == 0 )                // short circuit
                 return(1);
