@@ -28,10 +28,11 @@
 //***********************************
 //Werkstatt							*
 #define SLAVE_ADRESSE 0x64 //		*
+
 //									*
 //***********************************
 
-
+//#define SLAVE_ADRESSE 0x99
 
 
 
@@ -114,7 +115,7 @@ void SPI_shift_out(void)
    in_hbdaten=0;
    lcd_gotoxy(19,1);
    lcd_putc(' ');
-   //OSZILO;
+  // OSZILO;
    
    SPI_CLK_HI; // Clk sicher HI
    delay_ms(1);
@@ -170,12 +171,12 @@ void SPI_shift_out(void)
       lcd_putc('-');
       errCounter++;
       SPI_ErrCounter++;
-   }
+    }
    
    
    //	lcd_gotoxy(17,3);
    //	lcd_puthex(errCounter & 0x00FF);
-   OSZIHI;
+  // OSZIHI;
    spicounter++;
    
 }
@@ -216,6 +217,9 @@ uint8_t Tastenwahl(uint8_t Tastaturwert)
 
 void slaveinit(void)
 {
+   TESTDDR |= (1<<TEST_PIN);
+   TESTPORT |= (1<<TEST_PIN);
+   
    
     SLAVE_OUT_DDR |= (1<<LAMPEEIN);		//Pin 0 von PORT D als Ausgang fuer Schalter: ON
     SLAVE_OUT_DDR |= (1<<LAMPEAUS);		//Pin 1 von PORT D als Ausgang fuer Schalter: OFF
@@ -695,10 +699,10 @@ void main (void)
            spannungB = (readKanal(ADC_B_PIN));
             
             adccounter++;
-            if (TEST)
+            if (TEST || (!(TESTPIN & (1<<TEST_PIN))))
             {
                rxdata=1;
-               SlaveStatus |= (1<<TWI_OK_BIT); // TWI ist ON
+               SlaveStatus |= (1<<TWI_OK_BIT); // TWI ist ON, Simulation Startroutine
                
 
             }
@@ -736,8 +740,8 @@ void main (void)
          
          else
          {
-           // lcd_gotoxy(16,0);
-           // lcd_puts("WAIT");
+            lcd_gotoxy(16,0);
+            lcd_puts("WAIT");
 
          }
          /*
@@ -745,7 +749,13 @@ void main (void)
          //lcd_puts("WAIT");
         */
       }
-       
+      if (TEST || (!(TESTPIN & (1<<TEST_PIN))))
+      {
+         SlaveStatus &= ~(1<<TWI_WAIT_BIT); // simulation TWI
+         SlaveStatus |= (1<<TWI_OK_BIT);
+      }
+
+      
   //    lcd_gotoxy(10,1);
   //    lcd_puts("X");
       
@@ -772,6 +782,7 @@ void main (void)
  #pragma mark TWI_OK
       if ((SlaveStatus & (1<<TWI_OK_BIT)) &&(rxdata) && !(SlaveStatus & (1<<MANUELLBIT)))	//Daten von TWI liegen vor und MANUELLBIT ist OFF
       {
+         //OSZILO;
          lcd_gotoxy(0,1);
          lcd_putint(spannungA>>2);
          
@@ -788,7 +799,7 @@ void main (void)
          //lcd_putc(' ');
          //lcd_putint(spicounter);
          
-         if (TEST)
+         if (TEST || (!(TESTPIN & (1<<TEST_PIN))))
          {
             SlaveStatus &= ~(1<<TWI_OK_BIT); // simulation TWI
          }
@@ -904,7 +915,7 @@ void main (void)
             //Lampestatus  |= (1<<LAMPEBIT);
             Radiatorstatus |= (1<< OFENBIT);
          }
-         lcd_gotoxy(10,0);
+         lcd_gotoxy(8,0);
          lcd_putc('L');
          
          if ( Lampestatus  & (1<<LAMPEBIT)) // Bit 0
@@ -957,7 +968,7 @@ void main (void)
              */
             
          }
-         lcd_gotoxy(12,0);
+         lcd_gotoxy(10,0);
          lcd_putc('R');
          
  #pragma mark Ofen
@@ -1093,6 +1104,7 @@ void main (void)
          // lcd_gotoxy(0,1);
          // lcd_putint(rxbuffer[0]);
          rxdata=0;               // TWI erledigt
+         //OSZIHI;
          
 #pragma mark SPI
          /***** SPI: Daten von SPI_Slave_Strom abfragen **************** */
@@ -1129,11 +1141,14 @@ void main (void)
             lcd_putint(out_startdaten);
             
          }
+         OSZILO;
+         
 #pragma mark SPI_shift_out
          //****************************
+      
          SPI_shift_out(); // delayfaktor 2: 80ms aktueller delayfaktor 16: 150ms
          //****************************
-         
+         OSZIHI;
          //    if (TEST)
          {
             lcd_gotoxy(0,3);
@@ -1147,6 +1162,10 @@ void main (void)
             lcd_putint(in_startdaten);
             
          }
+         
+         lcd_gotoxy(13,0);
+         lcd_putint(SPI_ErrCounter);
+
          lcd_gotoxy(12,2);
          lcd_putint16(inbuffer[0]+0xFF*inbuffer[1]);
          
@@ -1159,6 +1178,7 @@ void main (void)
          //****************************
          //	end tx_buffer laden
          //****************************
+         //OSZIHI;
       }
       else
       {

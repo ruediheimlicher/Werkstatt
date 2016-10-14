@@ -187,7 +187,7 @@ void write_spi (unsigned char out_byte)
 uint8_t SPI_shift_out_byte(uint8_t out_byte)
 {
    uint8_t in_byte=0;
-   uint8_t delayfaktor=1;
+   uint8_t delayfaktor=16;
    
    uint8_t i=0;
    for(i=0; i<8; i++)
@@ -204,12 +204,12 @@ uint8_t SPI_shift_out_byte(uint8_t out_byte)
          /* this bit is low */
          SPI_CONTROL_PORT &= ~(1<<SPI_CONTROL_MOSI); // MOSI LO
       }
-      _delay_us(delayfaktor*out_PULSE_DELAY);
+      _delay_us(delayfaktor*out_PULSE_DELAY*2);
       
       // Vorgang beginnt: Takt LO, Slave legt Data auf MISO
       
       SPI_CONTROL_PORT &=~(1<<SPI_CONTROL_SCK);
-      _delay_us(delayfaktor*out_PULSE_DELAY);
+      _delay_us(delayfaktor*out_PULSE_DELAY*2);
       
       // Slave lesen von MISO
       if (SPI_CONTROL_PORTPIN & (1<<SPI_CONTROL_MISO))	// Bit vom Slave ist HI

@@ -9,7 +9,7 @@
 #ifndef defines_h
 #define defines_h
 
-#define TEST 1
+#define TEST 0
 
 #define RAUM		"WERKSTATT SPI"
 
@@ -88,6 +88,11 @@
 
 
 
+#define TESTPORT PORTB
+#define TESTDDR  DDRB
+#define TESTPIN  PINB
+
+#define TEST_PIN  7
 
 
 
