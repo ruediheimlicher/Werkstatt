@@ -644,6 +644,8 @@ void main (void)
       //lcd_gotoxy(18,1);
       //lcd_puts("W\0");
    }
+   init_twi_slave (SLAVE_ADRESSE);
+
    timer0();
    timer1();
    lcd_cls();
@@ -730,7 +732,7 @@ void main (void)
          {
             lcd_gotoxy(16,0);
             lcd_puts(" TWI");
-            init_twi_slave (SLAVE_ADRESSE);
+ //           init_twi_slave (SLAVE_ADRESSE);
             sei();
             SlaveStatus &= ~(1<<TWI_WAIT_BIT);
             
