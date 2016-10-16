@@ -6,7 +6,8 @@
  *  Copyright 2007 __MyCompanyName__. All rights reserved.
  *
  */
-struct adcwert16 {
+struct adcwert16
+{
   uint8_t wertH;
   uint8_t wertL;
   uint8_t wert8H;//obere 8 Bit

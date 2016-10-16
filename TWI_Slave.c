@@ -398,46 +398,8 @@ void timer2 (void)
 ISR(TIMER2_COMPA_vect)
 {
    
-   TCNT2=0;
-   if(EventCounter < 0x8FFF)// am Zaehlen, warten auf beenden von TWI // 0x1FF: 2 s
-   {
-      
-   }
-   else // Ueberlauf, TWI ist beendet,SPI einleiten
-   {
-      
-      EventCounter =0;
-      //lcd_gotoxy(0,0);
-      //lcd_puthex(webspistatus);
-      if (!(webspistatus & (1<<TWI_WAIT_BIT)))        // TWI soll laufen
-      {
-         //     if (cronstatus & (1<<CRON_HOME)) // eventuell nach xxx verschieben
-         {
-            webspistatus |= (1<<SPI_SHIFT_BIT);         // shift_out veranlassen
-            //         cronstatus &=  ~Ê(1<<CRON_HOME); // nur ein shift-out nach cron-Request
-         }
-      }
-      
-      if (webspistatus & (1<<TWI_STOP_REQUEST_BIT))	// Gesetzt in cmd=2: Vorgang Status0 von HomeServer ist angemeldet
-      {
-         webspistatus |= (1<<SPI_STATUS0_BIT);			// STATUS 0 soll noch an Master gesendet werden.
-         
-         webspistatus &= ~(1<<TWI_STOP_REQUEST_BIT);	//Bit zuruecksetzen
-      }
-      
-      
-      if (webspistatus & (1<<SPI_STATUS0_BIT))
-      {
-         webspistatus |= (1<<TWI_WAIT_BIT);				// SPI/TWI soll in der naechsten schleifen nicht mehr ermoeglicht werden
-         pendenzstatus |= (1<<SEND_STATUS0_BIT);		// Bestaetigung an Homeserver schicken, dass Status 0 angekommen ist. In cmd=10 zurueckgesetzt.
-         
-         webspistatus &= ~(1<<SPI_STATUS0_BIT);			//Bit zuruecksetzen
-      }
-      // xxx
-      
-   }
    
-   EventCounter++;
+   
    
 }
 
