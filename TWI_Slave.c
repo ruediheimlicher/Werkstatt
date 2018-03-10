@@ -1110,7 +1110,6 @@ void main (void)
          
 #pragma mark SPI_shift_out
          //****************************
-      
          SPI_shift_out(); // delayfaktor 2: 80ms aktueller delayfaktor 16: 150ms
          //****************************
          OSZIHI;

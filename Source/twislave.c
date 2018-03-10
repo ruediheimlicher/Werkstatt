@@ -136,7 +136,7 @@ uint8_t data=0;
 //PORTB |= (1<<PORTB0);
 //twidelay_ms(400);
    
-//rxdata=1; // 160909: Fehler
+rxdata=1; // 160909: Fehler
    
 //PORTB &= ~(1<<PORTB0);
 switch (TW_STATUS) //TWI-Statusregister prŸfen und nštige Aktion bestimmen 
