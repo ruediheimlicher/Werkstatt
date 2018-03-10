@@ -98,7 +98,7 @@ uint16_t readKanal(uint8_t derKanal) //Unsere Funktion zum ADC-Channel aus lesen
   return (result * ADC_KORR);
 }
 
-uint16_t readKanal_raw(uint8_t derKanal) //Unsere Funktion zum ADC-Channel aus lesen
+uint16_t readKanal_raw(uint8_t derKanal) //ADC-Channel aus lesen
 {
    uint8_t i;
    uint16_t result = 0;         //Initialisieren wichtig, da lokale Variablen
