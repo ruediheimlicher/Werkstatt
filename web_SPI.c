@@ -104,8 +104,8 @@ static volatile uint8_t					SPI_ErrCounter=0x00;
 // ************************************************
 // defines fuer pendenzstatus
 #define SEND_STATUS0_BIT		0	// Ankuendigen, dass in web-Schlaufe die Confirm-Status0-page geschickt wird
-#define RESETDELAY_BIT			7	// Anzeige, dass ein Hardware-Reset im Gang ist.
-#define RESETREPORT           6 // Anzeige, dass ein reset erfolgte. Meldung an homecentral schicken
+//#define RESETDELAY_BIT			7	// Anzeige, dass ein Hardware-Reset im Gang ist.
+//#define RESETREPORT           6 // Anzeige, dass ein reset erfolgte. Meldung an homecentral schicken
 
 
 #define CS_HC_PASSIVE			SPI_CONTROL_PORT |= (1<< SPI_CONTROL_CS_HC)	// CS fuer HC ist HI
@@ -204,7 +204,7 @@ uint8_t SPI_shift_out_byte(uint8_t out_byte)
          /* this bit is low */
          SPI_CONTROL_PORT &= ~(1<<SPI_CONTROL_MOSI); // MOSI LO
       }
-      _delay_us(delayfaktor*out_PULSE_DELAY*2);
+      _delay_us(delayfaktor*out_PULSE_DELAY*4);
       
       // Vorgang beginnt: Takt LO, Slave legt Data auf MISO
       
@@ -226,9 +226,10 @@ uint8_t SPI_shift_out_byte(uint8_t out_byte)
       out_byte = out_byte << 1;									//	Byte um eine Stelle nach links schieben
       _delay_us(delayfaktor*out_PULSE_DELAY);
    } // for i
-   _delay_us(delayfaktor*out_PULSE_DELAY);
+   _delay_us(delayfaktor*out_PULSE_DELAY*2);
    
    SPI_CONTROL_PORTPIN |= (1<<SPI_CONTROL_MISO);
+   _delay_us(delayfaktor*out_PULSE_DELAY*2);
    return in_byte;
 }
 

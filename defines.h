@@ -9,8 +9,7 @@
 #ifndef defines_h
 #define defines_h
 
-#define TEST 0
-
+#define TEST 1
 #define RAUM		"WERKSTATT SPI"
 
 #define TWI_PORT		PORTC
@@ -113,9 +112,12 @@
 #define STROMH       5
 #define STROML       6
 
+#define SPIERR       7
+
 #define SLAVE_IN_PORT         PORTA		// Eingang fuer Slave
 #define SLAVE_IN_DDR          DDRA		// DDR fuer Slave
 #define SLAVE_IN_PIN          PINA  // PIN fuer Slave
+#define SPI_PIN               6
 
 #define SLAVE_OUT_PORT         PORTC		// Ausgangsport fuer Slave
 #define SLAVE_OUT_DDR          DDRC		// DDR fuer Slave

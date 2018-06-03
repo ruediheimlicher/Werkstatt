@@ -82,7 +82,7 @@ uint8_t                 EEMEM WDT_ErrCount;	// Akkumulierte WDT Restart Events
 //#define CS_HC_PASSIVE			SPI_CONTROL_PORT |= (1<< SPI_CONTROL_CS_HC)	// CS fuer HC ist HI
 //#define CS_HC_ACTIVE				SPI_CONTROL_PORT &= ~(1<< SPI_CONTROL_CS_HC)	// CS fuer HC ist LO
 
-#define out_PULSE_DELAY			200								// Pause bei shift_byte
+//#define out_PULSE_DELAY			100								// Pause bei shift_byte
 
 volatile uint16_t EventCounter=0;
 
@@ -251,6 +251,8 @@ void slaveinit(void)
    SLAVE_IN_DDR &= ~(1<<MANUELL_PIN);	//Pin als Eingang fŸr Manuell-Taste
    SLAVE_IN_PORT |= (1<<MANUELL_PIN);	//Pull-up
   
+   SLAVE_IN_DDR |= (1<<SPI_PIN);
+   SLAVE_IN_PORT &= ~(1<<SPI_PIN);
    
    LOOPLEDDDR |= (1<<LOOPLED);
    
@@ -272,7 +274,7 @@ void slaveinit(void)
    TASTATURDDR &= ~(1<<TASTATURPIN);
    
    SlaveStatus=0;
-   SlaveStatus |= (1<<TWI_WAIT_BIT);
+   SlaveStatus |= (1<<TWI_WAIT_BIT); // TWI soll warten
    
    BUZZER_DDR |= (1<<BUZZER_PIN);
    
@@ -499,6 +501,9 @@ void main (void)
  
    slaveinit();
 
+   wdt_reset();
+   wdt_disable();
+
    //PORT2 |=(1<<PC4);
    //PORTC |=(1<<PC5);
    //init_twi_slave (SLAVE_ADRESSE);
@@ -641,15 +646,9 @@ void main (void)
          LOOPLEDPORT ^=(1<<LOOPLED);
          //BUZZER_PORT ^= (1<<BUZZER_PIN);
          loopcount1++;
-         //lcd_gotoxy(10,0);
-         //lcd_putc('A');
-         //lcd_puts("rx");
-         //lcd_putint(loopcount1);
-         if (loopcount1 >= 0x0F)
+           if (loopcount1 >= 0x0F)
          {
-            
-
-            
+            //SLAVE_IN_PORT ^= (1<<SPI_PIN);
             loopcount1=0;
             Servostellung++;
             OCR1A = Servoposition[Servostellung %8];
@@ -666,8 +665,8 @@ void main (void)
             adccounter++;
             if (TEST || (!(TESTPIN & (1<<TEST_PIN))))
             {
-               rxdata=1;
-               SlaveStatus |= (1<<TWI_OK_BIT); // TWI ist ON, Simulation Startroutine
+//               rxdata=1;
+//               SlaveStatus |= (1<<TWI_OK_BIT); // TWI ist ON, Simulation Startroutine
                
 
             }
@@ -701,6 +700,8 @@ void main (void)
             SlaveStatus |= (1<<TWI_OK_BIT); // TWI ist ON
             
             // StartDelayBit zuruecksetzen
+            SLAVE_IN_PORT |= (1<<SPI_PIN);
+            
          }
          
          else
@@ -716,8 +717,8 @@ void main (void)
       }
       if (TEST || (!(TESTPIN & (1<<TEST_PIN))))
       {
-         SlaveStatus &= ~(1<<TWI_WAIT_BIT); // simulation TWI
-         SlaveStatus |= (1<<TWI_OK_BIT);
+//         SlaveStatus &= ~(1<<TWI_WAIT_BIT); // simulation TWI
+//         SlaveStatus |= (1<<TWI_OK_BIT);
       }
 
       
@@ -766,7 +767,7 @@ void main (void)
          
          if (TEST || (!(TESTPIN & (1<<TEST_PIN))))
          {
-            SlaveStatus &= ~(1<<TWI_OK_BIT); // simulation TWI
+//            SlaveStatus &= ~(1<<TWI_OK_BIT); // simulation TWI
          }
          /*
           
@@ -880,7 +881,7 @@ void main (void)
             //Lampestatus  |= (1<<LAMPEBIT);
             Radiatorstatus |= (1<< OFENBIT);
          }
-         lcd_gotoxy(8,0);
+         lcd_gotoxy(4,0);
          lcd_putc('L');
          
          if ( Lampestatus  & (1<<LAMPEBIT)) // Bit 0
@@ -933,7 +934,7 @@ void main (void)
              */
             
          }
-         lcd_gotoxy(10,0);
+         lcd_gotoxy(6,0);
          lcd_putc('R');
          
  #pragma mark Ofen
@@ -1097,13 +1098,14 @@ void main (void)
             
             lcd_gotoxy(0,2);
             lcd_puts("oS \0");
+            //lcd_putc('s');
+            lcd_puthex(out_startdaten);
+            lcd_putc(' ');
             lcd_putint(outbuffer[0]);
-            lcd_putc('*');
-            //lcd_putint(outbuffer[1]);
-            //lcd_putc('*');
-            //lcd_putint(outbuffer[2]);
-            lcd_putc('s');
-            lcd_putint(out_startdaten);
+            lcd_putc(' ');
+            lcd_putint(outbuffer[1]);
+            lcd_putc(' ');
+            lcd_putint(outbuffer[2]);
             
          }
          OSZILO;
@@ -1113,32 +1115,34 @@ void main (void)
          SPI_shift_out(); // delayfaktor 2: 80ms aktueller delayfaktor 16: 150ms
          //****************************
          OSZIHI;
-         //    if (TEST)
+         if (TEST)
          {
             lcd_gotoxy(0,3);
             lcd_puts("iS \0");
+            
+            lcd_puthex(in_startdaten);
+            lcd_putc(' ');
             lcd_putint(inbuffer[0]);
-            lcd_putc('*');
+            lcd_putc(' ');
             lcd_putint(inbuffer[1]);
-            lcd_putc('*');
+            lcd_putc(' ');
             lcd_putint(inbuffer[2]);
-            lcd_putc('*');
-            lcd_putint(in_startdaten);
             
          }
          
-         lcd_gotoxy(13,0);
+         lcd_gotoxy(12,0);
          lcd_putint(SPI_ErrCounter);
 
          lcd_gotoxy(12,2);
-         lcd_putint16(inbuffer[0]+0xFF*inbuffer[1]);
+ //        lcd_putint16(inbuffer[0]+0xFF*inbuffer[1]); // Wert
          
          txbuffer[STROML]= inbuffer[0]; // L: byte 4
          txbuffer[STROMH] = inbuffer[1]; // H: byte 5
          txbuffer[STROMHH] = inbuffer[2]; // HH: byte 6
          
+         txbuffer[SPIERR] = SPI_ErrCounter;
          /***** End SPI**************** */
-         
+         rxdata = 0;
          //****************************
          //	end tx_buffer laden
          //****************************
