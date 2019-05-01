@@ -99,8 +99,10 @@ volatile uint8_t       testcounter=0;
 volatile uint8_t       spicounter=0;
 volatile uint8_t       adccounter=0;
 
-volatile uint16_t spannungA=0;
-volatile uint16_t spannungB=0;
+volatile uint16_t solevorlauftemp=0;
+volatile uint16_t soleruecklauftemp=0;
+volatile uint16_t speichertemp=0;
+
 volatile uint8_t Tastenwert=0;
 
 
@@ -268,8 +270,9 @@ void slaveinit(void)
    TWI_DDR &= ~(1<<SCLPIN);//Bit 5 von PORT C als Eingang fŸr SCL
    TWI_PORT |= (1<<SCLPIN); // HI
    
-   ADCDDR &= ~(1<<ADC_A_PIN);
-   ADCDDR &= ~(1<<ADC_B_PIN);
+   ADCDDR &= ~(1<<SOLEVORLAUFPIN);
+   ADCDDR &= ~(1<<SOLERUECKLAUFPIN);
+   ADCDDR &= ~(1<<SPEICHERPIN);
    
    TASTATURDDR &= ~(1<<TASTATURPIN);
    
@@ -556,12 +559,12 @@ void main (void)
    gNsensors = search_sensors();
    
    delay_ms(100);
-   lcd_gotoxy(0,0);
+   lcd_gotoxy(0,2);
    lcd_puts("Sens: \0");
    lcd_puthex(gNsensors);
    if (gNsensors>0)
    {
-      lcd_clr_line(1);
+      lcd_clr_line(3);
       start_temp_meas();
    }
    i=0;
@@ -639,14 +642,14 @@ void main (void)
       //
       if (loopcount0==0xBFFF)
       {
- //        OSZILO;
- //        Tastenwert=(readKanal_raw(TASTATURPIN)>>2);
- //       OSZIHI;
+         //        OSZILO;
+         //        Tastenwert=(readKanal_raw(TASTATURPIN)>>2);
+         //       OSZIHI;
          loopcount0=0;
          LOOPLEDPORT ^=(1<<LOOPLED);
          //BUZZER_PORT ^= (1<<BUZZER_PIN);
          loopcount1++;
-           if (loopcount1 >= 0x0F)
+         if (loopcount1 >= 0x0F)
          {
             //SLAVE_IN_PORT ^= (1<<SPI_PIN);
             loopcount1=0;
@@ -658,21 +661,45 @@ void main (void)
             //lcd_gotoxy(10,1);
             //lcd_putc('s');
             //lcd_putint(SlaveStatus);
+            
+            solevorlauftemp = (readKanal(SOLEVORLAUFPIN));
+            soleruecklauftemp = (readKanal(SOLERUECKLAUFPIN));
+            speichertemp = (readKanal(SPEICHERPIN));
+            lcd_gotoxy(0,1);
+            lcd_puts("V");
+            solevorlauftemp = solevorlauftemp /4;
+            lcd_putint12(solevorlauftemp);
+            //lcd_put_tempbis99(solevorlauftemp>>2);
+            lcd_putc(' ');
+            lcd_puts("R");
+            soleruecklauftemp = soleruecklauftemp / 4;
+            lcd_putint12(soleruecklauftemp);
+            lcd_putc(' ');
+            //lcd_puts("R");
+            speichertemp = speichertemp / 2; // Temperatur von device ist doppelt. faktor: /1024*256
+            lcd_putint12(speichertemp);
 
-           spannungA = (readKanal(ADC_A_PIN));
-           spannungB = (readKanal(ADC_B_PIN));
+            txbuffer[SOLEVORLAUFBYTE] = solevorlauftemp & 0xFF;
+            txbuffer[SOLERUECKLAUFBYTE] = soleruecklauftemp & 0xFF;
+            txbuffer[SPEICHERBYTE] = speichertemp & 0xFF;
+            /*
+             lcd_putint(soleruecklauftemp>>2);
+            //lcd_put_tempbis99(soleruecklauftemp>>2);
+            lcd_puts("S");
+            lcd_put_tempbis99(speichertemp>>2);
+            */
             
             adccounter++;
             if (TEST || (!(TESTPIN & (1<<TEST_PIN))))
             {
-//               rxdata=1;
-//               SlaveStatus |= (1<<TWI_OK_BIT); // TWI ist ON, Simulation Startroutine
+               //               rxdata=1;
+               //               SlaveStatus |= (1<<TWI_OK_BIT); // TWI ist ON, Simulation Startroutine
                
-
+               
             }
             
- 
-
+            
+            
          }
          
          
@@ -749,11 +776,11 @@ void main (void)
       if ((SlaveStatus & (1<<TWI_OK_BIT)) &&(rxdata) && !(SlaveStatus & (1<<MANUELLBIT)))	//Daten von TWI liegen vor und MANUELLBIT ist OFF
       {
          //OSZILO;
-         lcd_gotoxy(0,1);
-         lcd_putint(spannungA>>2);
+   //      lcd_gotoxy(0,1);
+   //      lcd_putint(solevorlauftemp>>2);
          
-         lcd_putc(' ');
-         lcd_putint12(spannungB);
+   //      lcd_putc(' ');
+   //      lcd_putint12(soleruecklauftemp);
          //lcd_putc('T');
          //lcd_putint(Tastenwert);
 
@@ -988,6 +1015,7 @@ void main (void)
          //  txbuffer[INNEN]=(uint8_t)(tempBuffer>>2);// Vorlauf
 #pragma mark Sensors
          // Temperatur messen mit DS18S20
+         /*
          if (gNsensors) // Sensor eingeseteckt
          {
             start_temp_meas();
@@ -1017,6 +1045,148 @@ void main (void)
          {
             txbuffer[INNEN] +=1;
          }
+         */
+         /*
+          // Sensoren abfragen
+          uint8_t index=0;
+          //lcd_clr_line(1);
+          for (index=0;index<gNsensors;index++)
+          {
+          uint8_t last= lastSensorID(index); // Letztes Byte der ID
+          //lcd_gotoxy(0,0);
+          //lcd_puthex(last);
+          
+          uint8_t indexTemperatur=2*((gTempdata[index]/10) & 0x00FF);
+          if (gTempdata[index]%10 >=5) // Dezimalstelle ist >=05: Wert  aufrunden, 1 addieren
+          {
+          indexTemperatur+= 1;
+          }
+          // Temperaturwerte zuteilen
+          switch (last)
+          {
+          case SENSORB0: // Kollektor-Vorlauf
+          {
+          //Sensor B0
+          txbuffer[KOLLEKTORVORLAUF]=indexTemperatur;
+          lcd_gotoxy(7,3);
+          lcd_puts("V:     \0");
+          if (gTempdata[index]/10>=100)
+          {
+          lcd_gotoxy(8,3);
+          lcd_putint((gTempdata[index]/10));
+          }
+          else
+          {
+          lcd_gotoxy(9,3);
+          lcd_putint2((gTempdata[index]/10));
+          }
+          
+          lcd_putc('.');
+          lcd_putint1(gTempdata[index]%10);
+          
+          }break;
+          
+          case SENSORB1: // Kollektor-Ruecklauf
+          {
+          //Sensor B1
+          txbuffer[KOLLEKTORRUECKLAUF]=indexTemperatur;
+          lcd_gotoxy(14,3);
+          lcd_puts("R:   \0");
+          if (gTempdata[index]/10>=100)
+          {
+          lcd_gotoxy(15,3);
+          lcd_putint((gTempdata[index]/10));
+          }
+          else
+          {
+          lcd_gotoxy(16,3);
+          lcd_putint2((gTempdata[index]/10));
+          }
+          
+          lcd_putc('.');
+          lcd_putint1(gTempdata[index]%10);
+          
+          }break;
+          
+          case SENSORA0: // Boiler unten
+          {
+          //Sensor A0
+          txbuffer[BOILERUNTEN]=indexTemperatur;
+          lcd_gotoxy(0,2);
+          lcd_puts("U:     \0");
+          if (gTempdata[index]/10>=100)
+          {
+          lcd_gotoxy(1,2);
+          lcd_putint((gTempdata[index]/10));
+          }
+          else
+          {
+          lcd_gotoxy(2,2);
+          lcd_putint2((gTempdata[index]/10));
+          }
+          
+          lcd_putc('.');
+          lcd_putint1(gTempdata[index]%10);
+          
+          }break;
+          
+          case SENSORA1: // Boiler mitte
+          {
+          //Sensor A1
+          txbuffer[BOILERMITTE]=indexTemperatur;
+          lcd_gotoxy(7,2);
+          lcd_puts("M:   \0");
+          if (gTempdata[index]/10>=100)
+          {
+          lcd_gotoxy(8,2);
+          lcd_putint((gTempdata[index]/10));
+          }
+          else
+          {
+          lcd_gotoxy(9,2);
+          lcd_putint2((gTempdata[index]/10));
+          }
+          
+          lcd_putc('.');
+          lcd_putint1(gTempdata[index]%10);
+          
+          }break;
+          
+          case SENSORA2: // Boiler oben
+          {
+          //Sensor A2
+          txbuffer[BOILEROBEN]=indexTemperatur;
+          lcd_gotoxy(14,2);
+          lcd_puts("O:   \0");
+          if (gTempdata[index]/10>=100)
+          {
+          lcd_gotoxy(15,2);
+          lcd_putint((gTempdata[index]/10));
+          }
+          else
+          {
+          lcd_gotoxy(16,2);
+          lcd_putint2((gTempdata[index]/10));
+          }
+          
+          lcd_putc('.');
+          lcd_putint1(gTempdata[index]%10);
+          
+          }break;
+          default:
+          {
+          lcd_gotoxy(0,2);
+          lcd_puts("nix\0");
+          }
+          
+          }   // switch last
+          //delay_ms(1000);
+          }// for index
+          
+          // end Sensoren abfragen
+          
+          
+          */
          
  #pragma mark Kuehltruhe/Wasser
          //

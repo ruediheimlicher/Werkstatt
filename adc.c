@@ -76,10 +76,11 @@ uint16_t readKanal(uint8_t derKanal) //Unsere Funktion zum ADC-Channel aus lesen
    ADMUX = (derKanal & 0x07);
    
    
-   // interne Referenz 2.56V
-   //ADMUX |= (1<<REFS2);
-  // ADMUX |= (1<<REFS1);
-   ADMUX |= (1<<REFS0);
+   
+   
+   ADMUX |= (1<<REFS0) | (1<<REFS1);// interne Referenz 2.56V
+  // ADMUX |= (1<<REFS0); // VCC
+   // ohne REFSX:externe Ref
    ADCSRA = (1<<ADEN) | (1<<ADPS2) | (1<<ADPS1);    // Frequenzvorteiler auf 32 setzen und ADC aktivieren
 
   // Eigentliche Messung - Mittelwert aus 4 aufeinanderfolgenden Wandlungen

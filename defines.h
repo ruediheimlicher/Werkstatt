@@ -45,8 +45,10 @@
 #define ADCPORT            PORTA
 #define ADCDDR             DDRA
 
-#define ADC_A_PIN          1
-#define ADC_B_PIN          2
+
+#define SOLEVORLAUFPIN           1
+#define SOLERUECKLAUFPIN         2
+#define SPEICHERPIN              4
 
 
 //Bit- Definitionen fuer Slave
@@ -101,9 +103,10 @@
 #define TASTATURPIN	0
 //#define BUZZERPIN		2
 
-#define INNEN			1	// Bit fuer Innentemperatur
-#define TEMP1			0	// Bit fuer Temperatur 1
-#define TEMP2			2	// Bit fuer Temperatur 2
+#define SOLEVORLAUFBYTE       0   // Byte fuer SOLEVORLAUF
+#define SOLERUECKLAUFBYTE		1	// Byte fuer Soleruecklauf
+#define SPEICHERBYTE			   2	// Byte fuer Speichertemperatur 
+
 
 // TWI
 #define STATUS			3	// Byte fuer Status
